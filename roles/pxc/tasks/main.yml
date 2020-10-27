@@ -1,0 +1,10 @@
+---
+# Tasks for final PXC tutorial setup
+
+- name: Connect Replication
+  tags: connect_replication
+  shell: >
+    mysql -uroot -e "STOP SLAVE; RESET SLAVE ALL;
+    CHANGE MASTER TO MASTER_HOST='{{ hostvars[inventory_hostname]['mysql_master_host'] }}',
+    MASTER_USER='repl', MASTER_PASSWORD='R3plica1234#',
+    MASTER_LOG_FILE='mysqld-bin.000001', MASTER_LOG_POS=4, MASTER_SSL=1; START SLAVE;"

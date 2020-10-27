@@ -1,0 +1,49 @@
+---
+# Tasks for kubernetes masters
+
+- name: install k8s management binaries
+  yum:
+    state: present
+    name:
+      - kubelet
+      - kubectl
+
+- name: Reset Kubernetes component
+  shell: "kubeadm reset --force && touch /root/.kube_reset"
+  args:
+    creates: /root/.kube_reset
+
+- name: kubeadm init
+  command: kubeadm init --ignore-preflight-errors=all --apiserver-advertise-address={{ hostvars[inventory_hostname]['privateIp'] }}
+  args:
+    creates: /etc/kubernetes/kubelet.conf
+
+- name: set env for kubeadm/kubectl
+  lineinfile: 
+    path: /etc/profile.d/kubernetes.sh
+    create: yes
+    line: "export KUBECONFIG=/etc/kubernetes/admin.conf"
+
+- name: create /root/.kube
+  file:
+    path: /root/.kube
+    state: directory
+
+- name: copy kubeconfig
+  copy:
+    remote_src: yes
+    src: /etc/kubernetes/admin.conf
+    dest: /root/.kube/config
+
+- name: de-taint the master
+  shell: "KUBECONFIG=/etc/kubernetes/admin.conf kubectl taint nodes --all node-role.kubernetes.io/master-"
+  register: result
+  failed_when: "'refused' in result.stderr"
+
+- name: create weave network
+  shell: |
+    KUBECONFIG=/etc/kubernetes/admin.conf \
+    kubectl apply -f "https://cloud.weave.works/k8s/net?k8s-version=$(kubectl version | base64 | tr -d '\n')" \
+    && touch /root/.weave_created
+  args:
+    creates: /root/.weave_created

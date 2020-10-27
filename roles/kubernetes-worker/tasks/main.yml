@@ -1,0 +1,20 @@
+---
+# Tasks for kubernetes worker nodes
+
+- name: discover master token
+  shell: "kubeadm token list | tail -n1 | awk '{print $1}'"
+  delegate_to: "{{ hostvars[inventory_hostname]['kube_master'] }}"
+  register: kubeadm_token
+
+- debug:
+    msg: "{{ kubeadm_token }}"
+    verbosity: 1
+
+- debug:
+    var: hostvars[inventory_hostname]
+    verbosity: 1
+
+- name: join cluster
+  command: kubeadm join --token={{ hostvars[inventory_hostname]['kubeadm_token'].stdout }} --discovery-token-unsafe-skip-ca-verification {{ hostvars[inventory_hostname]['kube_master'] }}:6443
+  args:
+    creates: /etc/kubernetes/kubelet.conf

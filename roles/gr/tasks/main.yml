@@ -1,0 +1,21 @@
+---
+# Tasks for final GR tutorial setup
+
+- tasks:
+  - name: Connect Replication
+    tags: connect_replication
+    shell: >
+      mysql -uroot -e "STOP SLAVE; RESET SLAVE ALL;
+      CHANGE MASTER TO MASTER_HOST='{{ hostvars[inventory_hostname]['mysql_master_host'] }}',
+      MASTER_USER='repl', MASTER_PASSWORD='R3plica1234#',
+      MASTER_LOG_FILE='mysqld-bin.000001', MASTER_LOG_POS=4, MASTER_SSL=1; START SLAVE;"
+
+- tasks:
+  - name: Drop everything, reset master, purge binlogs
+    shell: >
+      mysql -uroot -e "DROP DATABASE IF EXISTS imdb;
+      DROP DATABASE IF EXISTS world;
+      DROP DATABASE IF EXISTS sakila;
+      DROP DATABASE IF EXISTS sysbench;
+      FLUSH BINARY LOGS;
+      RESET SLAVE ALL; RESET MASTER;"

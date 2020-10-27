@@ -1,0 +1,6 @@
+{
+{% for item in groups['db1'] %}
+  "{{ hostvars[item]['team'] | regex_replace('^T(.*)$', '\\1') }}": { "privateIp": "{{ hostvars[item]['privateIp'] }}", "publicIp": "{{ hostvars[item]['ansible_ssh_host'] }}"}{% if not loop.last %},
+{% endif %}
+{% endfor %}
+}

@@ -1,0 +1,53 @@
+# The section 'client' is used by any application which
+# links against the 'libmysqlclient' library, which is most
+# tools and languages.
+[client]
+socket = /var/lib/mysql/mysql.sock
+ssl_ca = /etc/ssl/mysql/ca.pem
+ssl_cert = /etc/ssl/mysql/client-cert.pem
+ssl_key = /etc/ssl/mysql/client-key.pem
+
+# The 'mysql' section is used only by the 'mysql' CLI
+[mysql]
+
+# The 'mysqld' section is specific to parameters which
+# modify the behavior of the mysql server-daemon itself
+[mysqld]
+user = mysql
+datadir = /var/lib/mysql
+socket = /var/lib/mysql/mysql.sock
+pid-file = /var/lib/mysql/mysqld.pid
+
+innodb_buffer_pool_size = 3G
+
+server_id = 5
+
+log-bin = mysqld-bin
+binlog_format = ROW
+sync_binlog = 0
+log-slave-updates
+
+gtid-mode = ON
+enforce-gtid-consistency = 1
+
+skip-name-resolve
+
+log-error = /var/log/mysqld.log
+log_error_verbosity = 3
+
+slow_query_log = on
+slow_query_log_file = '/var/lib/mysql/slow.log'
+log_slow_verbosity = full
+long_query_time = 0
+
+secure-file-priv = /root/
+
+explicit_defaults_for_timestamp = 1
+sysdate-is-now = 1
+
+early-plugin-load = keyring_file.so
+
+ssl_ca = /etc/ssl/mysql/ca.pem
+ssl_cert = /etc/ssl/mysql/server-cert.pem
+ssl_key = /etc/ssl/mysql/server-key.pem
+

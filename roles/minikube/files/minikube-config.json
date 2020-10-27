@@ -1,0 +1,6 @@
+{
+    "cpus": 8,
+    "kubernetes-version": "v1.13.1",
+    "memory": 24576,
+    "vm-driver": "none"
+}

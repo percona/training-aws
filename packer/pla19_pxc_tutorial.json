@@ -1,0 +1,61 @@
+{
+	"builders": [{
+		"type": "amazon-ebs",
+		"region": "us-west-2",
+		"ami_regions": ["us-west-1", "us-west-2", "us-east-1", "us-east-2"],
+		"source_ami": "ami-a042f4d8",
+		"vpc_id": "vpc-48fd8c31",
+		"subnet_id": "subnet-20c1407a",
+		"instance_type": "t2.large",
+		"ssh_username": "centos",
+		"ssh_pty": "true",
+		"ami_name": "PLA19-PXC-TUTORIAL-{{isotime \"20060102\"}}-AMI",
+		"associate_public_ip_address": "true",
+		"tags": {
+			"Name": "PLA19-PXC-TUTORIAL-{{isotime \"20060102\"}}-AMI"
+		},
+		"ami_block_device_mappings": [{
+			"device_name": "/dev/sda1",
+			"delete_on_termination": true,
+			"volume_size": 20,
+			"volume_type": "gp2"
+		}],
+		"launch_block_device_mappings": [{
+			"device_name": "/dev/sda1",
+			"delete_on_termination": true,
+			"volume_size": 20,
+			"volume_type": "gp2"
+		}]
+	}],
+	"provisioners": [
+		{
+			"type": "shell",
+			"inline": [ "sleep 20" ]
+		},
+		{
+			"type": "file",
+			"source": "usr-local-bin.sh",
+			"destination": "/tmp/usr-local-bin.sh"
+		},
+		{
+			"type": "file",
+			"source": "my.cnf.txt",
+			"destination": "/tmp/my.cnf"
+		},
+		{
+			"type": "file",
+			"source": "percona-toolkit.conf",
+			"destination": "/tmp/percona-toolkit.conf"
+		},
+		{
+			"type": "shell",
+			"script": "base.sh",
+			"execute_command": "chmod +x {{ .Path }}; {{ .Vars }} sudo -E sh '{{ .Path }}'"
+		},
+		{
+			"type": "shell",
+			"script": "pla19_pxc_setup.sh",
+			"execute_command": "chmod +x {{ .Path }}; {{ .Vars }} sudo -E sh '{{ .Path }}'"
+		}
+	]
+}

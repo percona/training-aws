@@ -1,0 +1,32 @@
+---
+#
+# Tasks for the 'scoreboard' host
+#
+
+- name: install nodejs, npm, git, screen
+  yum:
+    state: installed
+    name:
+      - nodejs
+      - npm
+      - git
+      - screen
+
+- name: update openssl to latest version
+  yum: name={{item}} state=latest
+  with_items:
+    - openssl
+
+- name: clone scoreboard repo
+  git: repo=https://github.com/percona/training-mymovies
+       dest=/root/my-movies
+       update=no
+
+- name: create teams config
+  template: src=teams.json.j2 dest=/root/my-movies/scoreboard/teams.json
+
+- name: install scoreboard dependencies
+  npm: path=/root/my-movies/scoreboard
+
+- name: start scoreboard
+  command: screen -S scoreboard -d -m node scoreboard.js chdir=/root/my-movies/scoreboard

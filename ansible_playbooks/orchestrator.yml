@@ -1,0 +1,63 @@
+#
+# Orchestrator Ansible Script
+#
+# This playbook is for bootstrapping the Orchestrator tutorial in AWS
+# 
+
+- hosts: all
+  gather_facts: no
+  tasks:
+
+  - name: Set hostname
+    hostname: name={{ machinetype }}-{{ team }}
+
+  - name: Update etc-hosts
+    template: src=hosts.j2 dest=/etc/hosts
+
+  - name: Add .my.cnf
+    template: src=dotmydotcnf.j2 dest={{ item.path }} owner={{ item.owner }}
+    with_items:
+    - { path: /root/.my.cnf, owner: root }
+    - { path: /home/centos/.my.cnf, owner: centos }
+
+- hosts: app
+  gather_facts: no
+  tasks:
+
+  - name: Install Percona Repo, nano, screen
+    yum:
+      state: present
+      name:
+        - http://repo.percona.com/yum/percona-release-latest.noarch.rpm
+
+- hosts: mysql1:mysql2:mysql3
+  gather_facts: no
+  tasks:
+
+  # Repo, Percona MySQL 5.7, toolkit, xtrabackup, and sysbench should
+  # already be present from the AMI
+
+  - name: mysqld Parameters for Percona Server
+    ini_file:
+      path: /etc/my.cnf.d/training_base.cnf
+      section: "{{ item.section }}"
+      option: "{{ item.param }}"
+      value: "{{ item.value }}"
+      state: "{{ item.state }}"
+    with_items:
+      - { section: "mysqld", param: "server_id", value: "{{ 101 |random(start=2, seed=inventory_hostname) }}", state: "present" }
+      - { section: "mysql", param: "prompt", value: "\"{{inventory_hostname}} mysql> \"", state: "present" }
+
+  - name: start mysql
+    service: name=mysql state=restarted enabled=yes
+
+- hosts: mysql2:mysql3
+  gather_facts: no
+  tasks:
+
+  - name: Connect Replication
+    shell: >
+      mysql -uroot -p"Perc0na1234#" -e "STOP SLAVE; RESET SLAVE ALL;
+      CHANGE MASTER TO MASTER_HOST='{{ hostvars[inventory_hostname]['mysql_master_host'] }}',
+      MASTER_USER='repl', MASTER_PASSWORD='R3plica1234#',
+      MASTER_LOG_FILE='mysql-bin.000001', MASTER_LOG_POS=4; START SLAVE;"

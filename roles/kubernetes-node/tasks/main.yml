@@ -1,0 +1,51 @@
+---
+# Tasks common to all kubernetes nodes
+
+- name: add docker repo
+  yum_repository:
+    name: Docker-CE
+    description: Docker CE Stable
+    baseurl: https://download.docker.com/linux/centos/7/$basearch/stable
+    gpgcheck: 1
+    gpgkey:
+      - https://download.docker.com/linux/centos/gpg
+
+- name: add kubernetes repo
+  yum_repository:
+    name: Kubernetes
+    description: Kubernetes
+    baseurl: https://packages.cloud.google.com/yum/repos/kubernetes-el7-x86_64
+    gpgcheck: 1
+    gpgkey:
+      - https://packages.cloud.google.com/yum/doc/yum-key.gpg
+      - https://packages.cloud.google.com/yum/doc/rpm-package-key.gpg
+
+- name: yum install docker, lvm2, device-mapper
+  yum:
+    state: present
+    update_cache: yes
+    name:
+      - device-mapper-persistent-data
+      - lvm2
+      - docker-ce
+      - docker-ce-cli
+      - containerd.io
+      - kubeadm
+
+- name: modprobe bridge filter
+  modprobe:
+    name: br_netfilter
+    state: present
+
+- name: enable docker/kuber
+  systemd:
+    enabled: yes
+    name: "{{ item }}"
+  with_items:
+    - docker.service
+    - kubelet.service
+
+- name: restart docker
+  systemd:
+    state: restarted
+    name: docker

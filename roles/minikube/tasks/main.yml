@@ -1,0 +1,59 @@
+---
+# Tasks common to all minikube hosts
+
+- name: download kubectl
+  get_url:
+    url: https://storage.googleapis.com/kubernetes-release/release/v1.16.0/bin/linux/amd64/kubectl
+    dest: /usr/local/bin/kubectl
+    mode: 0755
+
+- name: download minikube
+  get_url:
+    url: https://storage.googleapis.com/minikube/releases/latest/minikube-linux-amd64
+    dest: /usr/local/bin/minikube
+    mode: 0755
+
+- name: add docker repo
+  yum_repository:
+    name: Docker-CE
+    description: Docker CE Stable
+    baseurl: https://download.docker.com/linux/centos/7/$basearch/stable
+    gpgcheck: 1
+    gpgkey:
+      - https://download.docker.com/linux/centos/gpg
+
+- name: yum install docker, lvm2, device-mapper
+  yum:
+    state: present
+    update_cache: yes
+    name:
+      - device-mapper-persistent-data
+      - lvm2
+      - docker-ce
+      - docker-ce-cli
+      - containerd.io
+
+- name: enable docker
+  systemd:
+    enabled: yes
+    name: docker.service
+
+- name: restart docker
+  systemd:
+    state: restarted
+    name: docker
+
+- name: create /root/.minikube/config
+  file:
+    path: /root/.minikube/config
+    state: directory
+
+- name: configure minikube
+  copy:
+    src: minikube-config.json
+    dest: /root/.minikube/config/config.json
+
+- name: start minikube
+  command: /usr/local/bin/minikube start
+  args:
+    creates: /root/.minikube/client.crt
