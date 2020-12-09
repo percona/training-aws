@@ -1,0 +1,221 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: Percona-Training-Group-Replication
+Parameters:
+  TrainingSSHKey:
+    Type: 'AWS::EC2::KeyPair::KeyName'
+    Default: Percona-Training
+    Description: Name of key pair to be used
+
+Resources:
+
+  # Create the VPC
+  PerconaTrainingVPC:
+    Type: 'AWS::EC2::VPC'
+    Properties:
+      CidrBlock: 10.11.0.0/16
+      EnableDnsSupport: true
+      EnableDnsHostnames: true
+      Tags:
+      - Key: Name
+        Value: !Sub 'Percona-Training-${AWS::StackName}-VPC'
+
+  # For internet access
+  InternetGateway:
+    Type: 'AWS::EC2::InternetGateway'
+    DependsOn: PerconaTrainingVPC
+    Properties:
+      Tags:
+      - Key: Name
+        Value: !Sub 'Percona-Training-${AWS::StackName}-GW'
+
+  # Must attach gateway to VPC
+  AttachGateway:
+    Type: 'AWS::EC2::VPCGatewayAttachment'
+    Properties:
+      VpcId: !Ref PerconaTrainingVPC
+      InternetGatewayId: !Ref InternetGateway
+
+  # Subnet for which instances are launched
+  PerconaTrainingSubnet:
+    Type: 'AWS::EC2::Subnet'
+    Properties:
+      VpcId: !Ref PerconaTrainingVPC
+      CidrBlock: 10.11.0.0/16
+      AvailabilityZone: !Select [ 0, !GetAZs ]    # Get the first AZ in the list        
+      Tags:
+      - Key: Name
+        Value: !Sub 'Percona-Training-${AWS::StackName}-SN'
+
+  # Routing for the subnet
+  PublicRouteTable:
+    Type: 'AWS::EC2::RouteTable'
+    Properties:
+      VpcId: !Ref PerconaTrainingVPC
+      Tags:
+      - Key: Name
+        Value: !Sub 'Percona-Training-${AWS::StackName}-RT'
+
+  # Public route table has direct routing to IGW:
+  PublicRoute1:
+    Type: 'AWS::EC2::Route'
+    DependsOn: AttachGateway
+    Properties:
+      RouteTableId: !Ref PublicRouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref InternetGateway
+
+  # Attach subnets to public route tables
+  PublicSubnetARouteTableAssociation:
+    Type: 'AWS::EC2::SubnetRouteTableAssociation'
+    Properties:
+      SubnetId: !Ref PerconaTrainingSubnet
+      RouteTableId: !Ref PublicRouteTable
+
+  PerconaTrainingSG:
+    Type: 'AWS::EC2::SecurityGroup'
+    Properties:
+      GroupName: !Sub 'Percona-Training-${AWS::StackName}-SG'
+      GroupDescription: Training labs security group
+      VpcId: !Ref PerconaTrainingVPC
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          CidrIp: 0.0.0.0/0
+          FromPort: 22
+          ToPort: 22
+
+  PerconaTrainingSGIngress:
+    Type: 'AWS::EC2::SecurityGroupIngress'
+    Properties:
+      IpProtocol: -1
+      FromPort: 0
+      ToPort: 0
+      GroupId: !Ref PerconaTrainingSG
+      SourceSecurityGroupId: !GetAtt PerconaTrainingSG.GroupId
+
+  app:
+    Type: 'AWS::EC2::Instance'
+    Properties:
+      ImageId: 'ami-07ebd9e603e9b63ca'
+      InstanceType: t3.large
+      KeyName: !Ref TrainingSSHKey
+      IamInstanceProfile: "PerconaTraining-EC2-CodeCommitReadOnly"
+      NetworkInterfaces:
+      - DeviceIndex: '0'
+        AssociatePublicIpAddress: true
+        PrivateIpAddress: '10.11.1.4'
+        SubnetId: !Ref PerconaTrainingSubnet
+        GroupSet: [!Ref PerconaTrainingSG]
+      UserData:
+        Fn::Base64:
+          !Sub |
+            #!/bin/bash
+            hostname app
+            echo "app" >/etc/hostname
+            yum install epel-release -y
+            yum install ansible git python3 -y
+            pip3 install git-remote-codecommit
+            ansible-pull \
+              -U https://github.com/percona/training-aws \
+              -i inventory_gr_aws_tutorial.yml hosts.yml -e gr=Y
+      Tags:
+        - Key: Name
+          Value: !Sub 'Percona-Training-${AWS::StackName}-app'
+          
+  mysql1:
+    Type: 'AWS::EC2::Instance'
+    Properties:
+      ImageId: 'ami-07ebd9e603e9b63ca'
+      InstanceType: t3.large
+      KeyName: !Ref TrainingSSHKey
+      IamInstanceProfile: "PerconaTraining-EC2-CodeCommitReadOnly"
+      NetworkInterfaces:
+      - DeviceIndex: '0'
+        AssociatePublicIpAddress: true
+        PrivateIpAddress: '10.11.1.1'
+        SubnetId: !Ref PerconaTrainingSubnet
+        GroupSet: [!Ref PerconaTrainingSG]
+      UserData:
+        Fn::Base64:
+          !Sub |
+            #!/bin/bash
+            hostname mysql1
+            echo "mysql1" >/etc/hostname
+            yum install epel-release -y
+            yum install ansible git python3 -y
+            pip3 install git-remote-codecommit
+            ansible-pull \
+              -U https://github.com/percona/training-aws \
+              -i inventory_gr_aws_tutorial.yml hosts.yml -e gr=Y
+      Tags:
+        - Key: Name
+          Value: !Sub 'Percona-Training-${AWS::StackName}-mysql1'
+  mysql2:
+    Type: 'AWS::EC2::Instance'
+    Properties:
+      ImageId: 'ami-07ebd9e603e9b63ca'
+      InstanceType: t3.large
+      KeyName: !Ref TrainingSSHKey
+      IamInstanceProfile: "PerconaTraining-EC2-CodeCommitReadOnly"
+      NetworkInterfaces:
+      - DeviceIndex: '0'
+        AssociatePublicIpAddress: true
+        PrivateIpAddress: '10.11.1.2'
+        SubnetId: !Ref PerconaTrainingSubnet
+        GroupSet: [!Ref PerconaTrainingSG]
+      UserData:
+        Fn::Base64:
+          !Sub |
+            #!/bin/bash
+            hostname mysql2
+            echo "mysql2" >/etc/hostname
+            yum install epel-release -y
+            yum install ansible git python3 -y
+            pip3 install git-remote-codecommit
+            ansible-pull \
+              -U https://github.com/percona/training-aws \
+              -i inventory_gr_aws_tutorial.yml hosts.yml -e gr=Y
+      Tags:
+        - Key: Name
+          Value: !Sub 'Percona-Training-${AWS::StackName}-mysql2'
+  mysql3:
+    Type: 'AWS::EC2::Instance'
+    Properties:
+      ImageId: 'ami-07ebd9e603e9b63ca'
+      InstanceType: t3.large
+      KeyName: !Ref TrainingSSHKey
+      IamInstanceProfile: "PerconaTraining-EC2-CodeCommitReadOnly"
+      NetworkInterfaces:
+      - DeviceIndex: '0'
+        AssociatePublicIpAddress: true
+        PrivateIpAddress: '10.11.1.3'
+        SubnetId: !Ref PerconaTrainingSubnet
+        GroupSet: [!Ref PerconaTrainingSG]
+      UserData:
+        Fn::Base64:
+          !Sub |
+            #!/bin/bash
+            hostname mysql3
+            echo "mysql3" >/etc/hostname
+            yum install epel-release -y
+            yum install ansible git python3 -y
+            pip3 install git-remote-codecommit
+            ansible-pull \
+              -U https://github.com/percona/training-aws \
+              -i inventory_gr_aws_tutorial.yml hosts.yml -e gr=Y
+      Tags:
+        - Key: Name
+          Value: !Sub 'Percona-Training-${AWS::StackName}-mysql3'
+
+Outputs:
+  app:
+    Description: App server IP Address
+    Value: !GetAtt app.PublicIp
+  MySQL1:
+    Description: MySQL1 IP Address
+    Value: !GetAtt mysql1.PublicIp
+  MySQL2:
+    Description: MySQL2 IP Address
+    Value: !GetAtt mysql2.PublicIp
+  MySQL3:
+    Description: MySQL3 IP Address
+    Value: !GetAtt mysql3.PublicIp
