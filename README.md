@@ -18,6 +18,10 @@ Every AWS zone needs a different AMI. Here's a list of AMI numbers for each zone
   * Leave off `-i` and the script will show you all available AMIs in this region.
   * Pick the AMI that has the most recent datetime
 
+* Percona-Training-MongoDB-20210107-AMI
+
+This is available in us-west-2 only by default. The ami is ami-0c2adaf7cfbf731ec
+
 ```
 $ ./start-instances.php -a ADD -r eu-west-1 -p TREK -c 6 -m db1
 You must set the AMI to use for the training instances.
@@ -54,7 +58,7 @@ Install ansible on your laptop.
 On Mac, easy with Homebrew:
 
 ```
-$ brew install ansible
+$ brew install ansible php@7.4
 ```
 
 ## Set Up Notes
@@ -70,6 +74,7 @@ There are multiple "machine types" which are used in different training courses:
   * app: This instance serves as sysbench, docker, and proxysql for the XtraDB Cluster Tutorial. Each student should get 1 app instance.
   * mysql1, mysql2, mysql3: These instances are used in the XtraDB Cluster Tutorial. Each student should get 1 of each of these.
   * node1: This instance is used in the PXC K8S Operator tutorial. Each student should receive 1 of these.*
+  * mongodb: This instance has the Percona Server for MongoDB packages. Each student should receive 1 of these for the MongoDB training.
 
 ## Set Up Instances
 
