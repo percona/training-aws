@@ -30,18 +30,8 @@
 	"provisioners": [
 		{
 			"type": "file",
-			"source": "usr-local-bin.sh",
-			"destination": "/tmp/usr-local-bin.sh"
-		},
-		{
-			"type": "file",
 			"source": "my.cnf.txt",
 			"destination": "/tmp/my.cnf"
-		},
-		{
-			"type": "file",
-			"source": "percona-toolkit.conf",
-			"destination": "/tmp/percona-toolkit.conf"
 		},
 		{
 			"type": "file",
@@ -60,7 +50,7 @@
 		},
 		{
 			"type": "shell",
-			"script": "percona-training-setup.sh",
+			"script": "percona-training-setup-mysql.sh",
 			"execute_command": "chmod +x {{ .Path }}; {{ .Vars }} sudo -E sh '{{ .Path }}'"
 		}
 	]

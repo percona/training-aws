@@ -25,7 +25,9 @@ fi
 
 echo "### Installing Percona-Toolkit Conf"
 mkdir /etc/percona-toolkit
-mv /tmp/percona-toolkit.conf /etc/percona-toolkit/
+cat <<TOOLKIT >/etc/percona-toolkit/percona-toolkit.conf
+no-version-check
+TOOLKIT
 
 echo "### Install Percona Repo"
 yum install -y http://repo.percona.com/yum/percona-release-latest.noarch.rpm

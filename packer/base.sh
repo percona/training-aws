@@ -34,11 +34,10 @@ sed -i 's/^SELINUX=.*/SELINUX=permissive/g' /etc/selinux/config
 setenforce Permissive
 
 # Add usr-local-bin path for everyone
-if [ ! -f /tmp/usr-local-bin.sh ]; then
-	echo "!! MISSING usr-local-bin.sh !! Aborting !!"
-	exit 1
-fi
-mv /tmp/usr-local-bin.sh /etc/profile.d/
+cat <<MYPATH >/etc/profile.d/usr-local-bin.sh
+#!/bin/bash
+export PATH=$PATH:/usr/local/bin
+MYPATH
 
 echo "### Remove mariadb-libs"
 yum remove -y mariadb-libs
