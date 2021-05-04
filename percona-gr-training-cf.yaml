@@ -116,7 +116,7 @@ Resources:
             pip3 install git-remote-codecommit
             ansible-pull \
               -U https://github.com/percona/training-aws \
-              -i inventory_gr_aws_tutorial.yml hosts.yml -e gr=Y
+              -i inventory_pxc_gr_aws_tutorials.yml hosts.yml -e gr=Y
       Tags:
         - Key: Name
           Value: !Sub 'Percona-Training-${AWS::StackName}-app'
@@ -145,7 +145,7 @@ Resources:
             pip3 install git-remote-codecommit
             ansible-pull \
               -U https://github.com/percona/training-aws \
-              -i inventory_gr_aws_tutorial.yml hosts.yml -e gr=Y
+              -i inventory_pxc_gr_aws_tutorials.yml hosts.yml -e gr=Y
       Tags:
         - Key: Name
           Value: !Sub 'Percona-Training-${AWS::StackName}-mysql1'
@@ -173,7 +173,7 @@ Resources:
             pip3 install git-remote-codecommit
             ansible-pull \
               -U https://github.com/percona/training-aws \
-              -i inventory_gr_aws_tutorial.yml hosts.yml -e gr=Y
+              -i inventory_pxc_gr_aws_tutorials.yml hosts.yml -e gr=Y
       Tags:
         - Key: Name
           Value: !Sub 'Percona-Training-${AWS::StackName}-mysql2'
@@ -201,7 +201,7 @@ Resources:
             pip3 install git-remote-codecommit
             ansible-pull \
               -U https://github.com/percona/training-aws \
-              -i inventory_gr_aws_tutorial.yml hosts.yml -e gr=Y
+              -i inventory_pxc_gr_aws_tutorials.yml hosts.yml -e gr=Y
       Tags:
         - Key: Name
           Value: !Sub 'Percona-Training-${AWS::StackName}-mysql3'
