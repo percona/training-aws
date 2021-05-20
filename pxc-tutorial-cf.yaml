@@ -5,6 +5,18 @@ Parameters:
     Type: 'AWS::EC2::KeyPair::KeyName'
     Default: Percona-Training
     Description: Name of key pair to be used
+Mappings:
+  RegionMap:
+    us-east-1:
+      HVM64: ami-07ebd9e603e9b63ca
+    us-west-1:
+      HVM64: ami-0b02004363780dd42
+    us-west-2:
+      HVM64: ami-0b02004363780dd42
+    eu-central-1:
+      HVM64: ami-07ebd9e603e9b63ca
+    eu-west-1:
+      HVM64: ami-07ebd9e603e9b63ca
 
 Resources:
 
@@ -95,7 +107,7 @@ Resources:
   app:
     Type: 'AWS::EC2::Instance'
     Properties:
-      ImageId: 'ami-07ebd9e603e9b63ca'
+      ImageId: !FindInMap [RegionMap, !Ref "AWS::Region", HVM64]
       InstanceType: t3.large
       KeyName: !Ref TrainingSSHKey
       IamInstanceProfile: "PerconaTraining-EC2-CodeCommitReadOnly"
@@ -124,7 +136,7 @@ Resources:
   mysql1:
     Type: 'AWS::EC2::Instance'
     Properties:
-      ImageId: 'ami-07ebd9e603e9b63ca'
+      ImageId: !FindInMap [RegionMap, !Ref "AWS::Region", HVM64]
       InstanceType: t3.large
       KeyName: !Ref TrainingSSHKey
       IamInstanceProfile: "PerconaTraining-EC2-CodeCommitReadOnly"
@@ -152,7 +164,7 @@ Resources:
   mysql2:
     Type: 'AWS::EC2::Instance'
     Properties:
-      ImageId: 'ami-07ebd9e603e9b63ca'
+      ImageId: !FindInMap [RegionMap, !Ref "AWS::Region", HVM64]
       InstanceType: t3.large
       KeyName: !Ref TrainingSSHKey
       IamInstanceProfile: "PerconaTraining-EC2-CodeCommitReadOnly"
@@ -180,7 +192,7 @@ Resources:
   mysql3:
     Type: 'AWS::EC2::Instance'
     Properties:
-      ImageId: 'ami-07ebd9e603e9b63ca'
+      ImageId: !FindInMap [RegionMap, !Ref "AWS::Region", HVM64]
       InstanceType: t3.large
       KeyName: !Ref TrainingSSHKey
       IamInstanceProfile: "PerconaTraining-EC2-CodeCommitReadOnly"
