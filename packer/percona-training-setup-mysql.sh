@@ -67,7 +67,7 @@ mkdir /etc/ssl/mysql
 mv /tmp/*.pem /etc/ssl/mysql/
 chown mysql:mysql /etc/ssl/mysql/*.pem
 chmod 644 /etc/ssl/mysql/*.pem
-chmod 600 /etc/ssl/mysql/{ca-key.pem,server-key.pem}
+chmod 600 /etc/ssl/mysql/ca-key.pem
 
 # For sysbench 1.0; hardcoded
 ln -s /etc/ssl/mysql/ca.pem /etc/ssl/mysql/cacert.pem
