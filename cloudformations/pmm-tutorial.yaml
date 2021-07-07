@@ -161,7 +161,7 @@ Resources:
             pip3 install git-remote-codecommit
             ansible-pull \
               -U https://github.com/percona/training-aws \
-              -i inventory_aws_tutorials.yml hosts.yml -e gr=N
+              -i inventory_aws_tutorials.yml hosts.yml -e gr=N -e pmmtutorial=Y
       Tags:
         - Key: Name
           Value: !Sub 'Percona-Training-${AWS::StackName}-mysql1'
