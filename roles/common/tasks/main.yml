@@ -6,15 +6,3 @@
 
 - name: Update etc-hosts
   template: src=hosts.j2 dest=/etc/hosts
-
-- name: Configure alternate SSH port
-  blockinfile:
-    dest: /etc/ssh/sshd_config
-    block: |
-      Port 80
-      Port 22
-  register: sshdconfig
-
-- name: Restart SSHd
-  service: name=sshd state=restarted enabled=yes
-  when: (sshdconfig is changed)

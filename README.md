@@ -20,7 +20,7 @@ Every AWS zone needs a different AMI. Here's a list of AMI numbers for each zone
 
 * Percona-Training-MongoDB-20210107-AMI
 
-This is available in us-west-2 only by default. The ami is ami-0c2adaf7cfbf731ec
+The MongoDB AMI is available in us-west-2 only at this time. The ID is ami-0c2adaf7cfbf731ec
 
 ```
 $ ./start-instances.php -a ADD -r eu-west-1 -p TREK -c 6 -m db1
@@ -188,6 +188,6 @@ For the *Scaling and Optimization* class, the students might find it more benefi
 * Day 0: Some time before day 1, you know only 14 students will be attending. Create 15 DB1 instances (one additional for instructor). This will be 14 teams, one student per team. Run ansible as normal.
 * Day 1 (Class): Distribute servers as normal. Assign each student to their own team. Do exercises as normal.
 * Day 1 (Hotel): Destroy all 15 instances. Create 7 DB1 instances for 7 teams, 2 students per team, and 1 scoreboard instance. Run ansible as normal.
-* Day 2 (Class): Re-distrubite servers as IPs will change. Assign students, in pairs, to new teams. Run My-Movies exercise.
+* Day 2 (Class): Re-distribute servers as IPs will change. Assign students, in pairs, to new teams. Run My-Movies exercise.
 * Day 2 (Hotel): Destroy everything. If your class is continuing with *Operations and Troubleshooting*, re-launch 15 DB1 and 15 DB2 instances. Run ansible as normal.
 * Day 3 (Class): Again, re-distribute servers. Run remainder of class/exercises as normal.
