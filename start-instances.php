@@ -52,6 +52,9 @@ switch($options['action'])
 	case 'SYNCDYNAMO':
 		syncDynamo();
 		break;
+	case 'LISTALL':
+		listAllInstances();
+		break;
 	default:
 		printf("!! Unknown action !!\n");
 		printHelp();

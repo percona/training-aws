@@ -10,13 +10,13 @@ Mappings:
     us-east-1:
       HVM64: ami-07ebd9e603e9b63ca
     us-west-1:
-      HVM64: ami-0b02004363780dd42
+      HVM64: ami-0559f840e19a9dd87
     us-west-2:
       HVM64: ami-0b02004363780dd42
     eu-central-1:
-      HVM64: ami-07ebd9e603e9b63ca
+      HVM64: ami-098d6253feafb8037
     eu-west-1:
-      HVM64: ami-07ebd9e603e9b63ca
+      HVM64: ami-0cc06bddb2f744955
 
 Resources:
 
