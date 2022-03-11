@@ -36,9 +36,21 @@ Percona-Training-20200710-AMI  - ami-0b02004363780dd42
 
 ## Installation
 
-### PHP
+### Packages required
 
-You need PHP 5.6+ on your laptop to run the scripts.
+You need PHP 5.6+ on your laptop to run the scripts. Also AWCLI and Ansible are required.
+
+On Mac, easy with Homebrew:
+
+```
+$ brew install php@7.4 ansible awscli
+```
+
+On Linux the following packages are required:
+
+```
+sudo apt-get install php7.4 php-xml php-mbstring ansible awscli
+```
 
 ### AWS Credentials
 
@@ -49,16 +61,6 @@ $ cat ~/.aws/credentials
 [default]
 aws_access_key_id = ...
 aws_secret_access_key = ...
-```
-
-### Ansible
-
-Install ansible on your laptop.
-
-On Mac, easy with Homebrew:
-
-```
-$ brew install ansible php@7.4
 ```
 
 ## Set Up Notes
