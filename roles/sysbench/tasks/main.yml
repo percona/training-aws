@@ -1,11 +1,10 @@
 ---
 # Tasks for sysbench stuff
 
-- name: install sysbench
-  yum: name=sysbench state=installed
-
-- name: symlink ca.pem
-  file:
-    src: "/etc/ssl/mysql/ca.pem"
-    dest: "/etc/ssl/mysql/cacert.pem"
-    state: link
+- name: Install sysbench v1.1
+  tags: sysbench11
+  dnf:
+    state: installed
+    disable_gpg_check: yes
+    name:
+      - https://lefred.be/wp-content/uploads/2022/04/sysbench-1.1.0-1.el7.x86_64.rpm

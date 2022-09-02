@@ -11,7 +11,7 @@ set -e  # Exit build if any command below fails/exits
 # 
 # This script performs the following operations:
 # - Installs a previously uploaded my.cnf
-# - Installs Percona YUM repo
+# - Installs Percona repo
 # - Installs latest Percona Server 8.0
 # - Extracts an xtrabackup image containing imdb, sakila, and world schemas
 # - Starts MySQL and displays last 50 lines of error log
@@ -24,17 +24,18 @@ if [ ! -f /tmp/my.cnf ]; then
 fi
 
 echo "### Installing Percona-Toolkit Conf"
-mkdir /etc/percona-toolkit
+mkdir -p /etc/percona-toolkit
 cat <<TOOLKIT >/etc/percona-toolkit/percona-toolkit.conf
 no-version-check
 TOOLKIT
 
 echo "### Install Percona Repo"
-yum install -y http://repo.percona.com/yum/percona-release-latest.noarch.rpm
-percona-release setup ps80
+dnf install -y http://repo.percona.com/yum/percona-release-latest.noarch.rpm
+percona-release setup ps80 -y
 
-echo "### Install Latest Percona Server 8.0"
-yum install -y \
+echo "### Install Percona Server 8.0.28"
+dnf versionlock percona-server-*-8.0.28
+dnf install -y \
 	percona-server-server.x86_64 \
 	percona-server-client.x86_64 \
 	percona-mysql-shell.x86_64 \
@@ -48,7 +49,7 @@ yum install -y \
 # Download/install xtrabackup of IMDB/world/sakila
 echo "### Downloading backup from S3..."
 mkdir -p /var/lib/mysql
-curl https://s3.amazonaws.com/percona-training/imdb_world_sakila_20200320.xbstream | xbstream -C /var/lib/mysql -xv
+curl -sS https://s3.amazonaws.com/percona-training/imdb_world_sakila_20200320.xbstream | xbstream -C /var/lib/mysql -xv
 
 echo "### Decompressing .qp files..."
 xtrabackup --decompress --remove-original --parallel 4 --compress-threads 4 --target-dir /var/lib/mysql/
@@ -63,27 +64,24 @@ echo "### Installing /etc/my.cnf"
 mv /tmp/my.cnf /etc/my.cnf
 
 echo "### Install SSL Certs"
-mkdir /etc/ssl/mysql
+mkdir -p /etc/ssl/mysql
 mv /tmp/*.pem /etc/ssl/mysql/
 chown mysql:mysql /etc/ssl/mysql/*.pem
 chmod 644 /etc/ssl/mysql/*.pem
 chmod 600 /etc/ssl/mysql/ca-key.pem
 
-# For sysbench 1.0; hardcoded
-ln -s /etc/ssl/mysql/ca.pem /etc/ssl/mysql/cacert.pem
-
 echo "### Starting MySQL..."
-systemctl start mysqld.service
-sleep 10 && journalctl -n 50 -u mysqld --no-pager
+systemctl start mysql
+sleep 10 && journalctl -n 10 -u mysqld --no-pager && tail -50 /var/log/mysqld.log
 
 echo "### Remove Backup Files"
-mysql -uroot -BNe "SELECT COUNT(*) FROM world.city" >/dev/null
+mysql -uroot -pPerc0na1234# -BNe "SELECT COUNT(*) FROM world.city" >/dev/null
 if [ $? -eq 0 ]; then
   rm -rf /var/lib/mysql/imdb_world_sakila_20200320.xbstream /var/lib/mysql/xtrabackup_*
 fi
 
 echo "### Create root/imdb/sysbench user"
-cat <<- EOF | mysql -uroot
+cat <<- EOF | mysql -uroot -pPerc0na1234#
 
 	CREATE DATABASE IF NOT EXISTS sysbench;
 
@@ -114,20 +112,17 @@ cat <<- EOF | mysql -uroot
 	FLUSH PRIVILEGES; FLUSH LOGS; RESET MASTER;
 EOF
 
-# mysql -uroot -e "CREATE FUNCTION fnv1a_64 RETURNS INTEGER SONAME 'libfnv1a_udf.so'"
-# mysql -uroot -e "CREATE FUNCTION fnv_64 RETURNS INTEGER SONAME 'libfnv_udf.so'"
-# mysql -uroot -e "CREATE FUNCTION murmur_hash RETURNS INTEGER SONAME 'libmurmur_udf.so'"
-
 echo "### MySQL shutdown"
-systemctl stop mysqld
+systemctl stop mysql
 rm -f /var/lib/mysql/auto.cnf /var/lib/mysql/backup-my.cnf /var/lib/mysql/slow.log \
       /var/lib/mysql/binlog.* /var/lib/mysql/mysqld-bin.* /var/lib/mysql/*.pem
 rm -f /var/log/mysqld.log
 
 echo "### Install sysbench Scripts"
 mv /tmp/{prepare_sysbench.sh,run_imdb_workload.sh,run_sysbench_oltp.sh} /usr/local/bin/
-mv /tmp/imdb_workload.lua /home/centos/
+mv /tmp/imdb_workload.lua /home/rocky/
 chmod 755 /usr/local/bin/{prepare_sysbench.sh,run_imdb_workload.sh,run_sysbench_oltp.sh}
+chown rocky /usr/local/bin/{prepare_sysbench.sh,run_imdb_workload.sh,run_sysbench_oltp.sh}
 
 echo "### Install myq_status"
 curl -L https://github.com/jayjanssen/myq-tools/releases/download/1.0.4/myq_tools.tgz >/tmp/myq_tools.tgz

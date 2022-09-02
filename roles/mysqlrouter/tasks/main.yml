@@ -1,6 +1,0 @@
----
-
-- name: Copy mysqlrouter basic config
-  copy:
-    src: basic_mysqlrouter.cnf
-    dest: /home/centos/basic_mysqlrouter.cnf
