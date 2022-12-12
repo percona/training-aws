@@ -2,17 +2,17 @@
 
 ## AMI List
 
-* Percona-Training-20200710-AMI
+* Percona-Training-20220901-AMI
 
 Every AWS zone needs a different AMI. Here's a list of AMI numbers for each zone:
 
 | Zone          | Region         | AMI                   |
 | --------------|----------------|-----------------------|
-| N. Virginia   | us-east-1      | ami-07ebd9e603e9b63ca |
-| N. California | us-west-1      | ami-0559f840e19a9dd87 |
-| Oregon        | us-west-2      | ami-0b02004363780dd42 |
-| Frankfurt     | eu-central-1   | ami-098d6253feafb8037 |
-| Ireland       | eu-west-1      | ami-0cc06bddb2f744955 |
+| N. Virginia   | us-east-1      | ami-073e67e3834239143 |
+| N. California | us-west-1      | ami-01cfc92e9763eb6f0 |
+| Oregon        | us-west-2      | ami-0320dc014aff478c1 |
+| Frankfurt     | eu-central-1   | ami-06d85227c31f2646e |
+| Ireland       | eu-west-1      | ami-0ac49c5792ae34de2 |
 
 * Always verify you are using the LATEST AMI:
   * Leave off `-i` and the script will show you all available AMIs in this region.
@@ -38,7 +38,7 @@ Percona-Training-20200710-AMI  - ami-0b02004363780dd42
 
 ### Packages required
 
-You need PHP 5.6+ on your laptop to run the scripts. Also AWCLI and Ansible are required.
+You need PHP 7.4+ on your laptop to run the scripts. Also AWCLI and Ansible are required.
 
 On Mac, easy with Homebrew:
 
@@ -73,10 +73,12 @@ There are multiple "machine types" which are used in different training courses:
   * db1: Used for the 'Scaling and Optimization' course. Exercises in the various chapters can be executed on db1. The 'MyMovies' chapter is a team-building exercise. You would assign 2-3 students for each db1 instance. This instance is also used for 'Operations and Troubleshooting' when doing xtrabackup labs, and functions as the master all master/slave exercises.
   * db2: This machine type is used as the slave instance for all all master/slave exercises.
   * scoreboard: This is for the MyMovies competition. Ansible will handle 100% of the configuration. You simply need to open the page in your browser (port 8080) and display on projector/monitor for students to see.
-  * app: This instance serves as sysbench, docker, and proxysql for the XtraDB Cluster Tutorial. Each student should get 1 app instance.
-  * mysql1, mysql2, mysql3: These instances are used in the XtraDB Cluster Tutorial. Each student should get 1 of each of these.
-  * node1: This instance is used in the PXC K8S Operator tutorial. Each student should receive 1 of these.*
+  * app: This instance serves as sysbench, docker, and proxysql for the XtraDB Cluster and Group Replication tutorials. Each student should get 1 app instance.
+  * mysql1, mysql2, mysql3: These instances are used in the XtraDB Cluster and Group Replication tutorials. Each student should get 1 of each of these.
+  * node1: This instance is used in the PXC K8S Operator tutorial. Each student should receive 1 of these.
   * mongodb: This instance has the Percona Server for MongoDB packages. Each student should receive 1 of these for the MongoDB training.
+
+There are 2 machine type aliases, 'gr' and 'pxc', both are aliases for all 4 types: app, mysql1, mysql2, and mysql3
 
 ## Set Up Instances
 
@@ -104,13 +106,15 @@ If you need to launch other instance types, simply repeat the above command and 
 
 ### 2a. Launch multiple instance types
 
-You can launch multiple instance types at the same time. Separate each type with `,`
+You can launch multiple instance types at the same time. Separate each type with `,` or use the two aliases.
 
 ```
-./start-instances.php -a ADD -r eu-west-1 -p TREK -c 4 -m app,mysql1,mysql2,mysql3 -i ami-014230ad6c3e10ec2
-```
+-- Launch 4 complete setups for use in the PXC tutorial. A total of 16 (4 teams, each with 4 servers) EC2 instances will be created.
+./start-instances.php -a ADD -r eu-west-1 -p TREK -c 4 -m pxc -i ami-014230ad6c3e10ec2
 
-The above example will launch 4 complete setups for use in the PXC tutorial. A total of 16 EC2 instances would be created.
+-- Launch 7 setups for Operations class, db1 and db2. This will launch 14 instances total.
+./start-instances.php -a ADD -r us-west-2 -p TREK -c 7 -m db1,db2 -i ami-014230ad6c3e10ec2
+```
 
 ### 2b. Add More Instances
 
@@ -163,7 +167,7 @@ _Exception:_ For the MyMovies competition, assign 2 students per 1 team.
 
 Once the keys and teams are distributed, students can connect to instances.
 
-The SSH username is 'centos'. There is **NO password**. Windows/Putty users can use the PPK file.
+The SSH username is 'rocky'. There is **NO password**. Windows/Putty users can use the PPK file.
 
 ### 6. Removing Instances
 
