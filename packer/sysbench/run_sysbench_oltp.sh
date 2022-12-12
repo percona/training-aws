@@ -1,7 +1,5 @@
 #!/bin/bash
 
-cd /etc/mysql/ssl/
-
 sysbench \
 	/usr/share/sysbench/oltp_read_write.lua \
 	--db-driver=mysql \
@@ -12,7 +10,8 @@ sysbench \
 	--mysql-db=sysbench \
 	--mysql-host=mysql1 \
 	--mysql-ignore-errors=all \
-	--mysql-ssl=on \
+	--mysql-ssl=verify_ca \
+	--mysql-ssl-ca=/etc/ssl/mysql/ca.pem \
 	--tables=1 \
 	--table_size=1000000 \
 	--report-interval=1 \

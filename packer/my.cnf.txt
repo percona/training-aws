@@ -39,7 +39,7 @@ slow_query_log_file = '/var/lib/mysql/slow.log'
 log_slow_verbosity = full
 long_query_time = 0
 
-secure-file-priv = /root/
+secure-file-priv = /var/lib/mysql-files/
 
 explicit_defaults_for_timestamp = 1
 sysdate-is-now = 1

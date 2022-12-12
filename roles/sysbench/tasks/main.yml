@@ -8,3 +8,10 @@
     disable_gpg_check: yes
     name:
       - https://lefred.be/wp-content/uploads/2022/04/sysbench-1.1.0-1.el7.x86_64.rpm
+
+- name: Update sysbench scripts
+  copy: src=packer/sysbench/{{ item.src }} dest=/usr/local/bin/ mode={{ item.mode }} owner=rocky
+  with_items:
+    - { src: prepare_sysbench.sh, mode: "0755" }
+    - { src: run_imdb_workload.sh, mode: "0755" }
+    - { src: run_sysbench_oltp.sh, mode: "0755" }

@@ -5,7 +5,7 @@ dnf -y upgrade
 
 echo "### Installing useful packages"
 dnf install -y epel-release
-dnf install -y nano vim screen git telnet unzip lsof socat wget sysstat htop openssl python3-dnf-plugin-versionlock
+dnf install -y nano vim screen git telnet unzip lsof socat wget sysstat htop openssl python3-dnf-plugin-versionlock iptables-services iptables-utils
 dnf download httpd php php-mysqlnd psmisc
 
 # Don't require tty for sudoers
@@ -38,6 +38,10 @@ cat <<MYPATH >/etc/profile.d/usr-local-bin.sh
 #!/bin/bash
 export PATH=$PATH:/usr/local/bin
 MYPATH
+
+# Make sure iptables starts on boot
+systemctl enable iptables
+
 
 # Flush changes to disk
 sync && sleep 1 && sync

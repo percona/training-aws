@@ -1,7 +1,5 @@
 #!/bin/bash
 
-cd /etc/mysql/ssl/
-
 sysbench \
 	/usr/share/sysbench/oltp_read_write.lua \
 	--db-driver=mysql \
@@ -14,5 +12,6 @@ sysbench \
 	--mysql-user=sbuser \
 	--mysql-password=sbPass1234# \
 	--mysql-db=sysbench \
-	--mysql-ssl=on \
+	--mysql-ssl=verify_ca \
+	--mysql-ssl-ca=/etc/ssl/mysql/ca.pem \
 	prepare
