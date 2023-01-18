@@ -120,9 +120,9 @@ rm -f /var/log/mysqld.log
 
 echo "### Install sysbench Scripts"
 mv /tmp/{prepare_sysbench.sh,run_imdb_workload.sh,run_sysbench_oltp.sh} /usr/local/bin/
-mv /tmp/imdb_workload.lua /home/rocky/
+mv /tmp/imdb_workload.lua /home/centos/
 chmod 755 /usr/local/bin/{prepare_sysbench.sh,run_imdb_workload.sh,run_sysbench_oltp.sh}
-chown rocky /usr/local/bin/{prepare_sysbench.sh,run_imdb_workload.sh,run_sysbench_oltp.sh}
+chown centos /usr/local/bin/{prepare_sysbench.sh,run_imdb_workload.sh,run_sysbench_oltp.sh}
 
 echo "### Install myq_status"
 curl -L https://github.com/jayjanssen/myq-tools/releases/download/1.0.4/myq_tools.tgz >/tmp/myq_tools.tgz

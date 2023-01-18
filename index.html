@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Percona Training Servers</title>
+  <style>
+  .content {
+    margin-bottom: 50px;
+  }
+  .footer {
+    position: fixed;
+    bottom: 0px;
+    width: 100%;
+    text-align: center;
+    height: 30px;
+    padding-top: 10px;
+    border-top: 1px solid black;
+    background-color: #fff;
+  }
+  table.paleBlueRows {
+    width: 100%;
+  }
+  table.paleBlueRows thead {
+    background: #0B6FA4;
+  }
+  table.paleBlueRows thead th {
+    font-size: 17px;
+    font-weight: bold;
+    color: #FFFFFF;
+    text-align: center;
+  }
+  table.paleBlueRows tfoot td {
+    font-size: 14px;
+  }
+  .oddRow {
+    background: #D0E4F5;
+  }
+  .centered {
+    text-align: center;
+  }
+  span.command {
+    padding: 5px;
+    background-color: #88f;
+    font-family: monospace;
+  }
+  </style>
+  <script src="https://code.jquery.com/jquery-3.4.1.min.js"></script>
+  <script>
+  $(document).ready(function() {
+    getAndDisplayInstances();
+  });
+  
+  function getAndDisplayInstances()
+  {
+    var urlVars = getUrlVars();
+    if (!("tag" in urlVars)) {
+      handleNoTag();
+      return;
+    }
+    
+    // get servers from AWS API Gateway
+    $.ajax({
+      method: "GET",
+      url: "https://hdm6b3hep4.execute-api.us-east-1.amazonaws.com/prod/instances?tag=" + urlVars['tag'],
+      crossDomain: true,
+      success: function(data) {
+        
+        var pTag = urlVars['tag'];
+        var prettyTag = pTag.replace(/[_-]/gi, " ").toUpperCase();
+        $("#prettyTag").text(prettyTag);
+        
+        if (data.length < 1) {
+          $("body").append($("<p/>").text("No instances found. Check with your instructor."))
+          return
+        }
+        
+        // Some globals
+        var tbody = $("#serverListTableBody")
+        var thead = $("#serverListTableHead")
+        var theadrow = thead.append($("<tr/>"))
+        var oddRow = true
+        
+        // Determine which columns we need to create by examining
+        // first result and looking at its keys. Remove 2 fields
+        // because their sorting from Lambda is odd
+        var _columns = Object.keys(data[0]);
+        var columns = _columns.filter(function(e) {
+          return (e != "teamTag" && e != "teamId");
+        });
+        columns.sort();
+
+        // add teamId as first column
+        theadrow.append($("<th/>").text("Team Id"))
+        
+        // add remaining columns as THs to the table
+        $.each(columns, function(i, o) {
+          theadrow.append($("<th/>").text(o).attr("colspan", "2"));
+        });
+        
+        // Loop over data from DynamoDB and construct table.
+        // This data should already be in sorted teamId order from AWS Lambda
+        $.each(data, function(i, o) {
+          
+          var pubRow = $("<tr/>")
+          if (oddRow) { pubRow.addClass("oddRow"); }
+          
+          var privRow = $("<tr/>")
+          if (oddRow) { privRow.addClass("oddRow"); }
+          
+          var teamTd = $("<td/>")
+            .attr("rowspan", "2")
+            .attr("class", "centered")
+            .text(o["teamId"])
+          
+          pubRow.append(teamTd)
+          
+          // Loop again over each machine type, and add ips
+          $.each(columns, function(j, p) {
+            if (p == "teamId") { return true; } // skip this one
+            
+            pubRow.append($("<td/>").text("Public IP:"))
+            pubRow.append($("<td/>").text(o[p]["publicIp"]))
+            
+            privRow.append($("<td/>").text("Internal IP:"))
+            privRow.append($("<td/>").text(o[p]["privateIp"]))
+          });
+          
+          // append the created rows to the main table
+          tbody.append(pubRow)
+          tbody.append(privRow)
+          
+          oddRow = (!oddRow)
+        });
+        
+      },
+      error: function(xhr, e, d) {
+        $("body").append("p").text(xhr.responseText)
+      }
+    });
+  }
+  
+  
+  function handleNoTag() {
+    $("body").append("p").text("No tag. Check the URL provided by your instructor.")
+  }
+  
+  
+  function getUrlVars()
+  {
+    var vars = [], hash;
+    var hashes = window.location.href.slice(window.location.href.indexOf('?') + 1).split('&');
+    for(var i = 0; i < hashes.length; i++)
+    {
+        hash = hashes[i].split('=');
+        vars.push(hash[0]);
+        vars[hash[0]] = hash[1];
+    }
+    return vars;
+  }
+  </script>
+</head>
+<body>
+
+  <div class="content">
+    <h1 style="text-align: center;" id="prettyTag"></h1>
+
+    <table class="paleBlueRows" id="serverListTable">
+    <thead id="serverListTableHead"></thead>
+    <tbody id="serverListTableBody"></tbody>
+    </table>
+  </div>
+  <div class="footer">
+    <a href="/percona_training_keys.zip" target="_blank">Download SSH Keys</a>&nbsp;|&nbsp;
+    Login: centos&nbsp;|&nbsp;
+    Example: <span class="command">ssh -i Percona-Training.key centos@11.33.44.22</span>
+  </div>
+
+</body>
+</html>

@@ -18,9 +18,14 @@
     - { src: server-key.pem, mode: "0644" }
 
 - name: Remove motd
-  ansible.builtin.file:
-    dest: /etc/motd.d/cockpit
-    src: /dev/null
-    state: link
-    force: yes
+  shell: >
+    if [[ -e /etc/motd.d/cockpit ]]; then
+      rm -f /etc/motd.d/cockpit
+      ln -s /dev/null /etc/motd.d/cockpit
+    fi
 
+- name: Update packages
+  yum:
+    state: latest
+    name:
+      - ca-certificates

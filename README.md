@@ -155,7 +155,7 @@ _Exception:_ For the MyMovies competition, assign 2 students per 1 team.
 
 Once the keys and teams are distributed, students can connect to instances.
 
-The SSH username is 'rocky'. There is **NO password**. Windows/Putty users can use the PPK file.
+The SSH username is 'centos'. There is **NO password**. Windows/Putty users can use the PPK file.
 
 ### 6. Removing Instances
 

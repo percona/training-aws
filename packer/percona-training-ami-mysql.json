@@ -7,7 +7,7 @@
 		"vpc_id": "vpc-0cebcbc42e8ad6500",
 		"subnet_id": "subnet-022ef4ecff240225a",
 		"instance_type": "t2.large",
-		"ssh_username": "rocky",
+		"ssh_username": "centos",
 		"ssh_pty": "true",
 		"ami_name": "Percona-Training-{{isotime \"20060102\"}}-AMI",
 		"associate_public_ip_address": "true",
