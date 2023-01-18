@@ -2,21 +2,9 @@
 
 ## AMI List
 
-* Percona-Training-20220901-AMI
-
-Every AWS zone needs a different AMI. Here's a list of AMI numbers for each zone:
-
-| Zone          | Region         | AMI                   |
-| --------------|----------------|-----------------------|
-| N. Virginia   | us-east-1      | ami-073e67e3834239143 |
-| N. California | us-west-1      | ami-01cfc92e9763eb6f0 |
-| Oregon        | us-west-2      | ami-0320dc014aff478c1 |
-| Frankfurt     | eu-central-1   | ami-06d85227c31f2646e |
-| Ireland       | eu-west-1      | ami-0ac49c5792ae34de2 |
-
-* Always verify you are using the LATEST AMI:
+* Percona-Training-20200710-AMI
+* If the latest AMI doesn't work, try the previous AMI:
   * Leave off `-i` and the script will show you all available AMIs in this region.
-  * Pick the AMI that has the most recent datetime
 
 * Percona-Training-MongoDB-20210107-AMI
 
