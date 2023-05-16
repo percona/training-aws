@@ -390,17 +390,37 @@ function getSshConfig()
 	$reservations = searchInstanceMetadataForTag($options['suffix']);
 
 	$frontLength = strlen(sprintf("Percona-Training-%s-", $options['suffix']));
+	$sshConfigFile = sprintf("ssh_%s.txt", $options['suffix']);
 
-	foreach ($reservations as $instance)
+	try
 	{
-		$typeTeamName = substr($instance['Hostname'], $frontLength);
 
-		printf("Host %s %s\n", $instance['Hostname'], $typeTeamName);
-		printf("  HostName %s\n", $instance['PublicIpAddress']);
-		printf("  User centos\n");
-		printf("  IdentityFile %s.key\n", $config['KeyPair']['KeyName']);
-		printf("  StrictHostKeyChecking no\n");
-		printf("  ForwardAgent yes\n");
+		if(!$fp = fopen($sshConfigFile, "a"))
+		{
+			throw new Exception("Cannot open file $sshConfigFile");
+		}
+
+		// Print ssh config lines to file
+		foreach ($reservations as $instance)
+		{
+			$typeTeamName = substr($instance['Hostname'], $frontLength);
+
+			fwrite($fp, sprintf("Host %s %s\n", $instance['Hostname'], $typeTeamName));
+			fwrite($fp, sprintf("  HostName %s\n", $instance['PublicIpAddress']));
+			fwrite($fp, sprintf("  User centos\n"));
+			fwrite($fp, sprintf("  IdentityFile %s.key\n", $config['KeyPair']['KeyName']));
+			fwrite($fp, sprintf("  StrictHostKeyChecking no\n"));
+			fwrite($fp, sprintf("  ForwardAgent yes\n"));
+		}
+
+		fclose($fp);
+
+		printf("-- SSH config for all instances saved to '%s'\n", $sshConfigFile);
+
+	}
+	catch (Exception $e)
+	{
+		printf("Unable to get SSH config: %s", $e);
 	}
 }
 
@@ -512,7 +532,8 @@ function addNewInstance()
 			}
 		}
 
-		printf("Instances are running. You can now run with -a GETSSHCONFIG to get IPs.\n");
+		printf("Instances are running.\n");
+		getSshConfig();
 
 		//
 		// Now that the instances are running, we can get their IPs
