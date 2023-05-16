@@ -1,6 +1,6 @@
 #!/bin/bash
 
-sysbench /home/centos/imdb_workload.lua \
+sysbench /home/rocky/imdb_workload.lua \
   --db-driver=mysql \
   --db-ps-mode=disable \
   --skip_trx=on \

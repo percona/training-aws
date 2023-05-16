@@ -20,6 +20,9 @@ if [ -f /etc/cloud/cloud.cfg ]; then
 
 	# remove any keys created by packer
 	sed -i "s/^ssh_deletekeys:   0$/ssh_deletekeys:   1/" /etc/cloud/cloud.cfg
+
+	# user 'rocky' user
+	sed -i "s/name: cloud-user/name: rocky/" /etc/cloud/cloud.cfg
 fi
 
 # remove colorized nano

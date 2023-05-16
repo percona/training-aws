@@ -28,7 +28,7 @@ define('DRY_RUN', false);
 
 date_default_timezone_set('UTC');
 
-require 'aws.phar';
+require 'vendor/autoload.php';
 
 // Helpers
 

@@ -29,3 +29,4 @@
     state: latest
     name:
       - ca-certificates
+      - python3-dnf-plugin-versionlock

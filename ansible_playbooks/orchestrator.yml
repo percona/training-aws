@@ -18,7 +18,7 @@
     template: src=dotmydotcnf.j2 dest={{ item.path }} owner={{ item.owner }}
     with_items:
     - { path: /root/.my.cnf, owner: root }
-    - { path: /home/centos/.my.cnf, owner: centos }
+    - { path: /home/rocky/.my.cnf, owner: rocky }
 
 - hosts: app
   gather_facts: no
