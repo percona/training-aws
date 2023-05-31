@@ -75,7 +75,11 @@ function getAnsibleHosts()
 	$instances = array();
 	foreach ($reservations as $instance)
 	{
-		list($machineType, $teamCounter) = explode("-", substr($instance['Hostname'], $frontLength));
+		$teamName = substr($instance["Hostname"], $frontLength);
+		if($teamName == "PMM")
+			continue;
+
+		list($machineType, $teamCounter) = explode("-", $teamName);
 
 		$machineName = $machineType . "-" . $teamCounter;
 
@@ -224,7 +228,13 @@ function syncDynamo()
 		foreach ($reservations as $instance)
 		{
 			//var_dump($instance["Hostname"]);
-			list($machineType, $teamId) = explode("-", substr($instance['Hostname'], $frontLength));
+			//var_dump($frontLength);
+
+			$teamName = substr($instance["Hostname"], $frontLength);
+			if($teamName == "PMM")
+				continue;
+
+			list($machineType, $teamId) = explode("-", $teamName);
 
 			// remove the 'T'
 			$teamId = substr($teamId, 1);

@@ -29,3 +29,4 @@
     state: latest
     name:
       - ca-certificates
+      - yum-plugin-versionlock

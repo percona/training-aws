@@ -6,6 +6,15 @@ include 'config.php';
 $options = parseOptions();
 $config = loadConfig();
 
+/**
+ * Subnet mapping for those rare cases we need to link VPCs
+*/
+$subnet_map = array(
+	"DEFAULT" => "10.11.0.0/16",
+	"us-west-1" => "10.12.0.0/16",
+	"us-east-1" => "10.13.0.0/16"
+);
+
 /* This is the EC2 API Client object */
 $ec2 = Aws\Ec2\Ec2Client::factory(array(
 	'key' => $aws_key,
@@ -172,7 +181,7 @@ function createVpc()
 		{
 			$res = $ec2->createVpc(array(
 				'DryRun' => DRY_RUN,
-				'CidrBlock' => '10.11.0.0/16'
+				'CidrBlock' => getSubnetCidrBlock($options['region'])
 			));
 			
 			$config['Vpc'] = $res->get('Vpc');
@@ -242,7 +251,7 @@ function createSubnet()
 			$res = $ec2->createSubnet(array(
 				'DryRun' => DRY_RUN,
 				'VpcId' => $config['Vpc']['VpcId'],
-				'CidrBlock' => '10.11.0.0/16',
+				'CidrBlock' => getSubnetCidrBlock($options['region']),
 			));
 			
 			$config['Subnet'] = $res->get('Subnet');
@@ -878,8 +887,8 @@ function loadConfig()
 
 function dry_exit()
 {
-	if (!DRY_RUN)
-		exit(1);
+// 	if (!DRY_RUN)
+// 		exit(1);
 }
 
 function saveConfig()
@@ -940,4 +949,15 @@ function addIngressRule($port, $cidr)
 			)
 		)		
 	));
+}
+
+function getSubnetCidrBlock($r)
+{
+	global $subnet_map;
+
+	if(!array_key_exists($r, $subnet_map))
+	{
+		return $subnet_map["DEFAULT"];
+	}
+	return $subnet_map[$r];
 }
