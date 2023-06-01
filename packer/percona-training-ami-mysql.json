@@ -3,16 +3,19 @@
 		"type": "amazon-ebs",
 		"region": "us-west-2",
 		"ami_regions": ["us-west-1", "us-west-2", "us-east-1", "eu-west-1", "eu-central-1"],
-		"source_ami": "ami-09ca837d91f083d04",
-		"vpc_id": "vpc-0cebcbc42e8ad6500",
-		"subnet_id": "subnet-022ef4ecff240225a",
-		"instance_type": "t2.large",
-		"ssh_username": "centos",
+		"source_ami": "ami-01bd9f10dcbfb2f96",
+		"vpc_id": "vpc-07e3973970eaf9331",
+		"subnet_id": "subnet-0e62ed453726b1fd6",
+		"instance_type": "t3.large",
+		"ssh_username": "ec2-user",
 		"ssh_pty": "true",
-		"ami_name": "Percona-Training-{{isotime \"20060102\"}}-AMI",
+		"ami_name": "Percona-Training-{{isotime \"20060102\"}}",
 		"associate_public_ip_address": "true",
-		"tags": {
-			"Name": "Percona-Training-{{isotime \"20060102\"}}-AMI"
+		"run_tags": {
+			"Name": "Percona-Training-{{isotime \"20060102\"}}"
+		},
+		"run_volume_tags": {
+			"Name": "Percona-Training-Builder-EBS"
 		},
 		"ami_block_device_mappings": [{
 			"device_name": "/dev/sda1",

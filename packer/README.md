@@ -1,7 +1,7 @@
 # How to generate a new AMI using packer
 
 * Packer is a tool from Hasicorp that makes creating AMI very easy. You just write some bash, make a config and Packer does the rest.
-* The `percona-training-ami-NNN.json` packer config file specifies the base AMI (CentOS 7 in most cases), which regions you want yours in, name, volume sizes, etc.
+* The `percona-training-ami-NNN.json` packer config file specifies the base AMI (CentOS 9), which regions you want yours in, name, volume sizes, etc.
 * Look at the section "provisioners" within the packer config. The provisioners are executed in order. The last two, base.sh and percona-training-setup-NNN.sh do most of the setup.
 * Each time we need a new ami, we need to create a new Packer config (percona-training-ami-NNN.json) and a new "percona-training-setup-NNN.sh"
 * The idea with Packer is to create a base AMI. For example, with MySQL, the AMI is a single MySQL install with some dummy data. 

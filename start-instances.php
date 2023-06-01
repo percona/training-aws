@@ -116,7 +116,7 @@ function getAnsibleHosts()
 	}
 	print "\n";
 	print "[all:vars]\n";
-	print "ansible_ssh_user=centos\n";
+	print "ansible_ssh_user=ec2-user\n";
 	print "ansible_become=true\n";
 	print "ansible_ssh_private_key_file=Percona-Training.key\n";
 	print "\n";
@@ -417,7 +417,7 @@ function getSshConfig()
 
 			fwrite($fp, sprintf("Host %s %s\n", $instance['Hostname'], $typeTeamName));
 			fwrite($fp, sprintf("  HostName %s\n", $instance['PublicIpAddress']));
-			fwrite($fp, sprintf("  User centos\n"));
+			fwrite($fp, sprintf("  User ec2-user\n"));
 			fwrite($fp, sprintf("  IdentityFile %s.key\n", $config['KeyPair']['KeyName']));
 			fwrite($fp, sprintf("  StrictHostKeyChecking no\n"));
 			fwrite($fp, sprintf("  ForwardAgent yes\n"));
