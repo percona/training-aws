@@ -40,6 +40,12 @@ On Linux the following packages are required:
 sudo apt-get install php8.2 php-xml php-mbstring ansible awscli
 ```
 
+Then install PHP packages:
+
+```
+composer install
+```
+
 ### AWS Credentials
 
 Make sure you have your `~/.aws/credentials` configured:
