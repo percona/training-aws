@@ -2,7 +2,7 @@
 
 ## AMI List
 
-* Percona-Training-20200710-AMI
+* Percona-Training-20230601
 * If the latest AMI doesn't work, try the previous AMI:
   * Leave off `-i` and the script will show you all available AMIs in this region.
 
@@ -26,18 +26,18 @@ Percona-Training-20200710-AMI  - ami-0b02004363780dd42
 
 ### Packages required
 
-You need PHP 7.4+ on your laptop to run the scripts. Also AWCLI and Ansible are required.
+You need PHP 8.2.0+, and PHP (Composer)[https://getcomposer.org/] to run the scripts, and Ansible to run provisioning.
 
 On Mac, easy with Homebrew:
 
 ```
-$ brew install php@7.4 ansible awscli
+$ brew install php@8 ansible awscli composer
 ```
 
 On Linux the following packages are required:
 
 ```
-sudo apt-get install php7.4 php-xml php-mbstring ansible awscli
+sudo apt-get install php8.2 php-xml php-mbstring ansible awscli
 ```
 
 ### AWS Credentials
@@ -50,6 +50,9 @@ $ cat ~/.aws/credentials
 aws_access_key_id = ...
 aws_secret_access_key = ...
 ```
+
+At this time, there is no support for AWS SSO signon. Use a traditional IAM user with an access key.
+
 
 ## Set Up Notes
 
@@ -151,11 +154,10 @@ This will display all servers created for each team, along with their public and
 Have the students download the keys .zip file from the URL at the bottom of this page. Mac/Linux users must `chmod 600 Percona-Training.key`
 
 Next, assign teams. Just point at each student and say "You are team 1, you are team 2, etc".
-_Exception:_ For the MyMovies competition, assign 2 students per 1 team.
 
 Once the keys and teams are distributed, students can connect to instances.
 
-The SSH username is 'centos'. There is **NO password**. Windows/Putty users can use the PPK file.
+The SSH username is 'ec2-user'. There is **NO password**. Windows/Putty users can use the PPK file.
 
 ### 6. Removing Instances
 
