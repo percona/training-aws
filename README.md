@@ -149,6 +149,24 @@ If you add additional servers and need to provision them, you need to repeat the
 # ansible-playbook -i ansible_hosts_trek hosts.yml --limit T7    // Provision all servers from Team 7
 ```
 
+#### Freeze Percona Server Version
+
+By default, the ansible playbook will upgrade each instance to the latest PS/PXC matching version. (Ex: If PS 8.0.44 exists, but 8.0.43 is the latest PXC, then PS 8.0.43 will be installed)
+
+If you want to freeze the upgrade version of Percona Server, you can do so like this:
+
+```
+ansible-playbook -i ansible_othala hosts.yml --extra-vars "pslock=8.0.30"
+```
+
+#### Group Replication
+
+For the Group Replicaiton tutorial, the exercises need mysql3 to be erased. Please add this extra flag to indicate that this is a GR setup:
+
+```
+ansible-playbook -i ansible_plgr23 hosts.yml -e gr=Y
+```
+
 ### 5. Teams and Connecting to Instances
 
 Load the following URL to your presentation screen, and/or share the URL within chat, substituting XXXX for your "prefix":
