@@ -6,27 +6,3 @@
 
 - name: Update etc-hosts
   template: src=hosts.j2 dest=/etc/hosts
-
-- name: Copy SSL Certificates
-  copy: src=packer/etc_ssl_mysql/{{ item.src }} dest=/etc/ssl/mysql/ mode={{ item.mode }} owner=mysql group=mysql
-  with_items:
-    - { src: ca-key.pem, mode: "0600" }
-    - { src: ca.pem, mode: "0644" }
-    - { src: client-cert.pem, mode: "0644" }
-    - { src: client-key.pem, mode: "0644" }
-    - { src: server-cert.pem, mode: "0644" }
-    - { src: server-key.pem, mode: "0644" }
-
-- name: Remove motd
-  shell: >
-    if [[ -e /etc/motd.d/cockpit ]]; then
-      rm -f /etc/motd.d/cockpit
-      ln -s /dev/null /etc/motd.d/cockpit
-    fi
-
-- name: Update packages
-  yum:
-    state: latest
-    name:
-      - ca-certificates
-      - yum-plugin-versionlock
