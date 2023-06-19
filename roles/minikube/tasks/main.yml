@@ -3,7 +3,7 @@
 
 - name: download kubectl
   get_url:
-    url: https://storage.googleapis.com/kubernetes-release/release/v1.16.0/bin/linux/amd64/kubectl
+    url: https://storage.googleapis.com/kubernetes-release/release/v1.23.0/bin/linux/amd64/kubectl
     dest: /usr/local/bin/kubectl
     mode: 0755
 
@@ -32,6 +32,7 @@
       - docker-ce
       - docker-ce-cli
       - containerd.io
+      - conntrack-tools
 
 - name: enable docker
   systemd:
@@ -54,6 +55,6 @@
     dest: /root/.minikube/config/config.json
 
 - name: start minikube
-  command: /usr/local/bin/minikube start
+  command: /usr/local/bin/minikube start --force
   args:
     creates: /root/.minikube/client.crt
