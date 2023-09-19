@@ -1,0 +1,77 @@
+#
+# This playbook migrates the primary-replicas setup generated for mysql1,mysql2,mysql3 servers into a PXC cluster
+#
+
+## Settings for ProxySQL tutorial
+- hosts: mysql1:mysql2:mysql3
+  tasks:
+
+  - name: Stop MySQL
+    service:
+      name: mysql
+      state: stopped
+
+  - name: Remove MySQL packages
+    yum:
+      state: absent
+      name:
+        - percona-server-server
+        - percona-server-client
+        - percona-server-rocksdb
+        - percona-server-shared
+        - percona-server-shared-compat
+     
+  - name: Enable Percona XtraDB Cluster Repo
+    shell: >
+      percona-release enable pxc-80
+
+  - name: Install Percona XtraDB Cluster
+    yum:
+      state: latest
+      name:
+        - percona-xtradb-cluster
+
+  - name: Move back my.cnf
+    shell: >
+      /bin/cp -f /etc/my.cnf.rpmsave /etc/my.cnf
+
+  - name: Update wsrep /etc/my.cnf Parameters
+    tags: update_mycnf
+    register: mysqldconfig
+    ini_file:
+      path: /etc/my.cnf
+      section: "{{ item.section }}"
+      option: "{{ item.param }}"
+      value: "{{ item.value }}"
+    with_items:
+      - { section: "mysqld", param: "wsrep_provider", value: "/usr/lib64/galera4/libgalera_smm.so" }
+      - { section: "mysqld", param: "wsrep_cluster_address", value: "gcomm://mysql1,mysql2,mysql3" }
+      - { section: "mysqld", param: "wsrep_cluster_name", value: "mycluster" }
+      - { section: "mysqld", param: "wsrep_node_address", value: "{{ ansible_eth0.ipv4.address }}" }
+      - { section: "mysqld", param: "pxc_maint_transition_period", value: "1" }
+      - { section: "mysqld", param: "wsrep_log_conflicts", value: "1" }
+
+- hosts: mysql1
+  gather_facts: no
+  become: true
+  tasks:
+  - name: Bootstrap mysql1
+    command: systemctl start mysql@bootstrap
+
+- hosts: mysql2
+  gather_facts: no
+  become: true
+  tasks:
+    - name: Regular start mysql
+      service: name=mysql state=started enabled=yes
+      async: 600
+      poll: 20
+
+- hosts: mysql3
+  gather_facts: no
+  become: true
+  tasks:
+    - name: Regular start mysql
+      service: name=mysql state=started enabled=yes
+      async: 600
+      poll: 20
