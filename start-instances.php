@@ -607,10 +607,6 @@ function searchInstanceMetadataForTag($tag)
 			[
 				'Name' => 'tag:Name',
 				'Values' => [$fTag]
-			],
-			[
-				'Name' => 'instance-state-name',
-				'Values' => ['running']
 			]
 		],
 	]);
