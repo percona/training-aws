@@ -41,8 +41,16 @@ $ brew install php@7.2 ansible awscli composer
 On Linux the following packages are required:
 
 ```
-sudo apt-get install php7.2 php-xml php-mbstring ansible awscli composer
+$ sudo apt-get install php7.2 php-xml php-mbstring ansible awscli composer
 ```
+
+After you install composer, install all necessary PHP packages:
+
+```
+$ composer install
+```
+
+This will create a `vendor/` directory, with all the 3rd party libraries needed.
 
 ### AWS Credentials
 
