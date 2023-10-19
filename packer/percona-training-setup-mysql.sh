@@ -30,12 +30,13 @@ no-version-check
 TOOLKIT
 
 echo "### Install Percona Repo"
-dnf install -y http://repo.percona.com/yum/percona-release-latest.noarch.rpm
+yum install -y http://repo.percona.com/yum/percona-release-latest.noarch.rpm
 percona-release setup ps80 -y
 
 echo "### Install Percona Server 8.0.28"
-dnf versionlock percona-server-*-8.0.28
-dnf install -y \
+yum -y install yum-plugin-versionlock
+yum versionlock percona-server-*-8.0.28
+yum install -y \
 	percona-server-server.x86_64 \
 	percona-server-client.x86_64 \
 	percona-mysql-shell.x86_64 \

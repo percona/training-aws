@@ -1,12 +1,15 @@
 #!/bin/bash		
 
+centosversion=`rpm -qi centos-release  | grep Version | awk '{ print $3}'`
+
 echo "### Starting Package Upgrades"
-dnf -y upgrade
+yum -y upgrade
 
 echo "### Installing useful packages"
-dnf install -y epel-release
-dnf install -y nano vim screen git telnet unzip lsof socat wget sysstat htop openssl python3-dnf-plugin-versionlock iptables-services iptables-utils
-dnf download httpd php php-mysqlnd psmisc
+yum install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-$centosversion.noarch.rpm
+yum install -y nano vim screen git telnet unzip lsof socat wget sysstat htop sudo cloud-init libselinux-python yum-plugin-downloadonly openssl
+yum clean all
+yum install --downloadonly httpd php php-mysql mysql-utilities openssl sysbench psmisc
 
 # Don't require tty for sudoers
 sed -i "s/^.*requiretty/#Defaults requiretty/" /etc/sudoers
@@ -39,9 +42,8 @@ cat <<MYPATH >/etc/profile.d/usr-local-bin.sh
 export PATH=$PATH:/usr/local/bin
 MYPATH
 
-# Make sure iptables starts on boot
-systemctl enable iptables
-
+echo "### Remove mariadb-libs"
+yum remove -y mariadb-libs
 
 # Flush changes to disk
 sync && sleep 1 && sync
