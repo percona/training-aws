@@ -30,7 +30,7 @@ no-version-check
 TOOLKIT
 
 echo "### Install Percona Repo"
-dnf install -y http://repo.percona.com/yum/percona-release-latest.noarch.rpm
+yum install -y http://repo.percona.com/yum/percona-release-latest.noarch.rpm
 percona-release setup ps80 -y
 percona-release enable pt
 
