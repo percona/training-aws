@@ -1,0 +1,78 @@
+#
+# This playbook migrates the primary-replicas setup generated for mysql1,mysql2,mysql3 servers into a Group Replication Cluster
+#
+
+## Settings for ProxySQL tutorial
+- hosts: mysql1
+  gather_facts: false
+  tasks:
+
+  - name: Create GR user
+    shell: >
+      mysql -uroot -e "CREATE USER IF NOT EXISTS 'grdr'@'10.%' IDENTIFIED BY 'R3pl1cat10n#';
+      GRANT REPLICATION SLAVE, CONNECTION_ADMIN, BACKUP_ADMIN, GROUP_REPLICATION_STREAM ON *.* TO 'grdr'@'10.%';"
+
+- hosts: mysql2:mysql3
+  gather_facts: false
+  tasks:
+
+  - name: Reset master, purge binlogs
+    shell: >
+      mysql -uroot -e "STOP SLAVE; RESET SLAVE ALL;"
+
+- hosts: mysql1:mysql2:mysql3
+  tasks:
+
+  - name: Update /etc/my.cnf Parameters for GR
+    tags: update_mycnf
+    register: mysqldconfig
+    ini_file:
+      path: /etc/my.cnf
+      section: "{{ item.section }}"
+      option: "{{ item.param }}"
+      value: "{{ item.value }}"
+    with_items:
+      - { section: "mysqld", param: "plugin_load_add", value: "group_replication.so;mysql_clone.so" }
+      - { section: "mysqld", param: "group_replication_group_name", value: "{{ ansible_hostname[-1]}}aaaaaaa-bbbb-cccc-1111-aaaaaaaaaaaa" }
+      - { section: "mysqld", param: "group_replication_view_change_uuid", value: "aaaaaaaa-bbbb-cccc-9999-aaaaaaaaaaa{{ ansible_hostname[-1]}}" }
+      - { section: "mysqld", param: "group_replication_start_on_boot", value: "off" }
+      - { section: "mysqld", param: "group_replication_local_address", value: "{{ ansible_hostname }}:33061" }
+      - { section: "mysqld", param: "group_replication_group_seeds", value: "mysql1:33061,mysql2:33061,mysql3:33061" }
+      - { section: "mysqld", param: "group_replication_bootstrap_group", value: "off" }
+      - { section: "mysqld", param: "group_replication_recovery_get_public_key", value: "on" }
+      - { section: "mysqld", param: "group_replication_single_primary_mode", value: "on" }
+      - { section: "mysqld", param: "group_replication_paxos_single_leader", value: "on" }
+      - { section: "mysqld", param: "binlog_transaction_dependency_tracking", value: "WRITESET" }
+
+  - name: Configure replication channel
+    shell: >
+      mysql -uroot -e "CHANGE REPLICATION SOURCE TO SOURCE_USER='grdr', SOURCE_PASSWORD='R3pl1cat10n#' FOR CHANNEL 'group_replication_recovery';"
+
+  - name: Restart mysql
+    service: name=mysql state=restarted enabled=yes
+    when: (mysqldconfig is changed)
+
+- hosts: mysql1
+  gather_facts: no
+  become: true
+  tasks:
+  - name: Bootstrap mysql1
+    shell: >
+      mysql -uroot -e "SET GLOBAL group_replication_bootstrap_group = ON;
+      START GROUP_REPLICATION;"
+
+- hosts: mysql2
+  gather_facts: no
+  become: true
+  tasks:
+    - name: Regular start GR
+      shell: >
+        mysql -uroot -e "START GROUP_REPLICATION;"
+
+- hosts: mysql3
+  gather_facts: no
+  become: true
+  tasks:
+    - name: Regular start GR
+      shell: >
+        mysql -uroot -e "START GROUP_REPLICATION;"
