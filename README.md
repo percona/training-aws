@@ -41,7 +41,7 @@ $ brew install php@7.2 ansible awscli composer
 On Linux the following packages are required:
 
 ```
-$ sudo apt-get install php7.2 php-xml php-mbstring ansible awscli composer
+$ sudo apt -y install php7.2 php-xml php-mbstring ansible awscli composer php-curl
 ```
 
 After you install composer, install all necessary PHP packages:
