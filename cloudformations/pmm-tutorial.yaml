@@ -112,7 +112,7 @@ Resources:
     Type: 'AWS::EC2::Instance'
     Properties:
       ImageId: !FindInMap [RegionMap, !Ref "AWS::Region", HVM64]
-      InstanceType: t3.large
+      InstanceType: t3a.large
       KeyName: !Ref TrainingSSHKey
       IamInstanceProfile: "PerconaTraining-EC2-CodeCommitReadOnly"
       NetworkInterfaces:
@@ -141,7 +141,7 @@ Resources:
     Type: 'AWS::EC2::Instance'
     Properties:
       ImageId: !FindInMap [RegionMap, !Ref "AWS::Region", HVM64]
-      InstanceType: t3.large
+      InstanceType: t3a.large
       KeyName: !Ref TrainingSSHKey
       IamInstanceProfile: "PerconaTraining-EC2-CodeCommitReadOnly"
       NetworkInterfaces:
