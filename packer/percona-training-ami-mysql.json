@@ -6,7 +6,7 @@
 		"source_ami": "ami-0a248ce88bcc7bd23",
 		"vpc_id": "vpc-0b7e5bd4e7eef4806",
 		"subnet_id": "subnet-0d627f49a25875a1a",
-		"instance_type": "t3.large",
+		"instance_type": "t3a.large",
 		"ssh_username": "centos",
 		"ssh_pty": "true",
 		"ami_name": "Percona-Training-{{isotime \"20060102\"}}-AMI",

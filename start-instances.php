@@ -445,14 +445,14 @@ function addNewInstance()
 
 	foreach ($machines as $machine)
 	{
-		$instanceType = "t3.large";
+		$instanceType = "t3a.large";
 		switch ($machine)
 		{
 			case "app":
-				$instanceType = "t3.xlarge";
+				$instanceType = "t3a.xlarge";
 				break;
 			case "node1":
-				$instanceType = "t3.2xlarge";
+				$instanceType = "t3a.2xlarge";
 				break;
 		}
 
