@@ -30,12 +30,12 @@ no-version-check
 TOOLKIT
 
 echo "### Install Percona Repo"
-yum install -y http://repo.percona.com/yum/percona-release-latest.noarch.rpm
+dnf install -y http://repo.percona.com/yum/percona-release-latest.noarch.rpm
 percona-release setup ps80 -y
 percona-release enable pt
 
-echo "### Install Percona Server 8.0.32"
-dnf versionlock percona-server-*-8.0.32 percona-xtrabackup-*-8.0.32
+echo "### Install Percona Server 8.0.37"
+dnf versionlock percona-server-*-8.0.37 percona-xtrabackup-*-8.0.37
 dnf install -y \
 	percona-server-server.x86_64 \
 	percona-server-client.x86_64 \
@@ -44,8 +44,7 @@ dnf install -y \
 	percona-server-shared.x86_64 \
 	percona-xtrabackup-80.x86_64 \
 	percona-toolkit.x86_64 \
-	perl-DBD-MySQL \
-	qpress
+	perl-DBD-MySQL
 
 # Download/install xtrabackup of IMDB/world/sakila
 echo "### Downloading backup from S3..."
@@ -136,5 +135,5 @@ rm -f /tmp/bin/{myq_status.darwin-386,myq_status.darwin-amd64,myq_status.freebsd
 mv /tmp/bin/myq_status.linux-amd64 /usr/local/bin/myq_status
 
 #----------------------------------------------
+sync && sleep 2 && sync
 echo "### Finished percona-training-setup.sh provisioning"
-sync && sleep 10 && sync

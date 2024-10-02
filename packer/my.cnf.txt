@@ -45,6 +45,7 @@ explicit_defaults_for_timestamp = 1
 sysdate-is-now = 1
 
 early-plugin-load = keyring_file.so
+keyring_file_data = /var/lib/mysql-keyring/keyring
 
 ssl_ca = /etc/ssl/mysql/ca.pem
 ssl_cert = /etc/ssl/mysql/server-cert.pem

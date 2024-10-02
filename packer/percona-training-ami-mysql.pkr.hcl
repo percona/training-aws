@@ -19,7 +19,7 @@ source "amazon-ebs" "percona-training" {
     volume_size           = 100
     volume_type           = "gp2"
   }
-  ami_name                    = local.image_name
+  ami_name                    = "${local.image_name}-AMI"
   ami_regions                 = ["us-west-1", "us-west-2", "us-east-1", "eu-west-1", "eu-central-1"]
   associate_public_ip_address = "true"
   instance_type               = "t3.large"
@@ -31,7 +31,7 @@ source "amazon-ebs" "percona-training" {
   }
   region = "us-west-2"
   run_tags = {
-    Name = local.image_name
+    Name = "${local.image_name}-AMI"
   }
   run_volume_tags = {
     Name = "Percona-Training-Builder-EBS"

@@ -15,11 +15,11 @@ set -e  # Exit build if any command below fails/exits
 # 
 
 echo "### Install Percona Repo"
-yum install -y http://repo.percona.com/yum/percona-release-latest.noarch.rpm
+dnf install -y http://repo.percona.com/yum/percona-release-latest.noarch.rpm
 percona-release setup -y psmdb42
 
 echo "### Install Latest Percona Server for MongoDB 4.2"
-yum install -y \
+dnf install -y \
 	percona-server-mongodb.x86_64 
 
 echo "### Creating dbpath..."
@@ -29,5 +29,5 @@ echo "### Fix permissions..."
 chown -R mongod: /mongodb
 
 #----------------------------------------------
-echo "### Finished percona-training-setup.sh provisioning"
+echo "### Finished percona-training-setup-mongo.sh provisioning"
 sync && sleep 10 && sync

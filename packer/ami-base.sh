@@ -1,6 +1,6 @@
 #!/bin/bash		
 
-echo && echo "===== Starting base.sh =====" && echo
+echo && echo "===== Starting ami-base.sh =====" && echo
 
 echo "### Package Upgrades"
 dnf -y upgrade
@@ -51,4 +51,4 @@ systemctl restart iptables
 # Flush changes to disk
 sync && sleep 1 && sync
 
-echo && echo "===== Finished base.sh =====" && echo
+echo && echo "===== Finished ami-base.sh =====" && echo
