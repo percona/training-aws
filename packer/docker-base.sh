@@ -1,0 +1,39 @@
+#!/bin/bash		
+
+echo && echo "===== Starting docker-base.sh =====" && echo
+
+echo "### Package Upgrades"
+#microdnf -y upgrade
+
+echo "### Installing usefull packages"
+microdnf install -y epel-release
+microdnf install -y sudo dnf nano vim screen telnet unzip socat wget htop openssl python3-dnf-plugin-versionlock iptables-services iptables-utils ca-certificates
+
+# Don't require tty for sudoers
+sed -i "s/^.*requiretty/#Defaults requiretty/" /etc/sudoers
+
+# remove colorized nano
+sed -i "s/^include /#include /" /etc/nanorc
+
+# # Set SELinux permissive
+# echo "### Set SELinux Permissive"
+# sed -i 's/^SELINUX=.*/SELINUX=permissive/g' /etc/selinux/config
+# setenforce Permissive
+
+# Add usr-local-bin path for everyone
+echo "### usr-local-bin PATH"
+cat <<MYPATH >/etc/profile.d/usr-local-bin.sh
+#!/bin/bash
+export PATH=$PATH:/usr/local/bin
+MYPATH
+
+# Make sure iptables starts on boot and allows everything
+echo "### Configure IPTables"
+systemctl enable iptables
+iptables -F && iptables-save >/etc/sysconfig/iptables
+systemctl restart iptables
+
+# Flush changes to disk
+sync && sleep 1 && sync
+
+echo && echo "===== Finished docker-base.sh =====" && echo
