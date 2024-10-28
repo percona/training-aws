@@ -3,10 +3,10 @@
 ## AMI List
 
 ```
-ami-0c2adaf7cfbf731ec - Centos 7 MongoDB 4.4 (used also for the k8s MongoDB training)
+ami-0c2adaf7cfbf731ec - Centos 7 / MongoDB 4.4 (used also for the k8s MongoDB training)
 ami-0b02004363780dd42 - Centos 7 MySQL
 ami-0f5dcffa34c281c1a - Rocky 9 MySQL
-ami-0ad8bfd4b10994785 - Centos 9 MySQL
+ami-0ad8bfd4b10994785 - Centos 9 MySQL / MongoDB 7.0
 ```
 
 The MongoDB AMI is available only in `us-west-2` region at this time. 
@@ -174,7 +174,7 @@ _Exception:_ For the MyMovies competition, assign 2 students per 1 team.
 
 Once the keys and teams are distributed, students can connect to instances.
 
-The SSH username is usually `centos` but depending on the AMI it can be different (e.g. `ec2-user`). There is **NO password**. Windows/Putty users can use the PPK file.
+The SSH username is usually `ec2-user` but depending on the AMI it can be different (e.g. `centos`). There is **NO password**. Windows/Putty users can use the PPK file.
 
 ### 6. Removing Instances
 
