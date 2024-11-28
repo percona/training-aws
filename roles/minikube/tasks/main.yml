@@ -17,7 +17,7 @@
   yum_repository:
     name: Docker-CE
     description: Docker CE Stable
-    baseurl: https://download.docker.com/linux/centos/7/$basearch/stable
+    baseurl: https://download.docker.com/linux/centos/{{ ansible_facts['distribution_major_version'] }}/$basearch/stable
     gpgcheck: 1
     gpgkey:
       - https://download.docker.com/linux/centos/gpg

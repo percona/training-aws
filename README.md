@@ -3,10 +3,10 @@
 ## AMI List
 
 ```
-ami-0c2adaf7cfbf731ec - Centos 7 / MongoDB 4.4 (used also for the k8s MongoDB training)
+ami-0c2adaf7cfbf731ec - Centos 7 / MongoDB 4.4 (old)
 ami-0b02004363780dd42 - Centos 7 MySQL
 ami-0f5dcffa34c281c1a - Rocky 9 MySQL
-ami-0ad8bfd4b10994785 - Centos 9 MySQL / MongoDB 7.0
+ami-0ad8bfd4b10994785 - Centos 9 MySQL / MongoDB 7.0 / MongoDB Operator
 ```
 
 The MongoDB AMI is available only in `us-west-2` region at this time. 
