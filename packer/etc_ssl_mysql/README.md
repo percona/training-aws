@@ -17,7 +17,7 @@ Create a new 2048-bit CA key, certificate request, and remove RSA passphrase fro
 
     openssl req \
       -newkey rsa:2048 \
-      -days 3650 \
+      -sha256 \
       -nodes \
       -keyout ca-key.pem \
       -subj "/C=US/ST=Anywhere/L=MyCity/O=Percona/OU=TrainingDept/CN=MyCoolCA" \
@@ -38,7 +38,7 @@ Create a new 2048-bit server key, certificate request, and remove RSA passphrase
 
     openssl req \
       -newkey rsa:2048 \
-      -days 3650 \
+      -sha256 \
       -nodes \
       -keyout server-key.pem \
       -subj "/C=US/ST=Anywhere/L=MyCity/O=Percona/OU=TrainingDept/CN=MyCoolServer" \
@@ -59,7 +59,7 @@ Create a new 2048-bit client key, certificate request, and remove RSA passphrase
 
     openssl req \
       -newkey rsa:2048 \
-      -days 3650 \
+      -sha256 \
       -nodes \
       -keyout client-key.pem \
       -subj /C=US/ST=Anywhere/L=MyCity/O=Percona/OU=TrainingDept/CN=MyCoolClient \
