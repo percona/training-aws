@@ -30,27 +30,33 @@ no-version-check
 TOOLKIT
 
 echo "### Install Percona Repo"
-yum install -y http://repo.percona.com/yum/percona-release-latest.noarch.rpm
+dnf install -y http://repo.percona.com/yum/percona-release-latest.noarch.rpm
 percona-release setup ps80 -y
 
-echo "### Install Percona Server 8.0.28"
-yum -y install yum-plugin-versionlock
-yum versionlock percona-server-*-8.0.28
-yum install -y \
+# Disable telemetry
+export PERCONA_TELEMETRY_DISABLE=1
+
+echo "### Install Percona Server 8.0.39"
+dnf -y install yum-plugin-versionlock
+dnf versionlock percona-server-*-8.0.39
+dnf install -y \
 	percona-server-server.x86_64 \
 	percona-server-client.x86_64 \
 	percona-mysql-shell.x86_64 \
 	percona-server-rocksdb.x86_64 \
 	percona-server-shared.x86_64 \
-	percona-server-shared-compat.x86_64 \
 	percona-xtrabackup-80.x86_64 \
 	percona-toolkit.x86_64 \
 	qpress
 
+# Again, disable telemetry
+systemctl stop percona-telemetry-agent
+systemctl disable percona-telemetry-agent
+
 # Download/install xtrabackup of IMDB/world/sakila
 echo "### Downloading backup from S3..."
 mkdir -p /var/lib/mysql
-curl -sS https://s3.amazonaws.com/percona-training/imdb_world_sakila_20200320.xbstream | xbstream -C /var/lib/mysql -xv
+curl -sS https://s3.amazonaws.com/percona-training/imdb_world_sakila_20241227.xbs | xbstream -C /var/lib/mysql -xv
 
 echo "### Decompressing .qp files..."
 xtrabackup --decompress --remove-original --parallel 4 --compress-threads 4 --target-dir /var/lib/mysql/
@@ -71,6 +77,11 @@ chown mysql:mysql /etc/ssl/mysql/*.pem
 chmod 644 /etc/ssl/mysql/*.pem
 chmod 600 /etc/ssl/mysql/ca-key.pem
 
+echo "### Component Keyring File config"
+echo '{ "components": "file://component_keyring_file" }' >/sbin/mysqld.my
+echo '{ "path": "/var/lib/mysql-keyring/component_keyring_file", "read_only": false }' \
+ > /usr/lib64/mysql/plugin/component_keyring_file.cnf
+
 echo "### Starting MySQL..."
 systemctl start mysql
 sleep 10 && journalctl -n 10 -u mysqld --no-pager && tail -50 /var/log/mysqld.log
@@ -78,7 +89,7 @@ sleep 10 && journalctl -n 10 -u mysqld --no-pager && tail -50 /var/log/mysqld.lo
 echo "### Remove Backup Files"
 mysql -uroot -pPerc0na1234# -BNe "SELECT COUNT(*) FROM world.city" >/dev/null
 if [ $? -eq 0 ]; then
-  rm -rf /var/lib/mysql/imdb_world_sakila_20200320.xbstream /var/lib/mysql/xtrabackup_*
+  rm -rf /root/imdb_world_sakila_20241227.xbs /var/lib/mysql/xtrabackup_*
 fi
 
 echo "### Create root/imdb/sysbench user"
@@ -121,9 +132,9 @@ rm -f /var/log/mysqld.log
 
 echo "### Install sysbench Scripts"
 mv /tmp/{prepare_sysbench.sh,run_imdb_workload.sh,run_sysbench_oltp.sh} /usr/local/bin/
-mv /tmp/imdb_workload.lua /home/centos/
+mv /tmp/imdb_workload.lua /home/rocky/
 chmod 755 /usr/local/bin/{prepare_sysbench.sh,run_imdb_workload.sh,run_sysbench_oltp.sh}
-chown centos /usr/local/bin/{prepare_sysbench.sh,run_imdb_workload.sh,run_sysbench_oltp.sh}
+chown rocky /usr/local/bin/{prepare_sysbench.sh,run_imdb_workload.sh,run_sysbench_oltp.sh}
 
 echo "### Install myq_status"
 curl -L https://github.com/jayjanssen/myq-tools/releases/download/1.0.4/myq_tools.tgz >/tmp/myq_tools.tgz

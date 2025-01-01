@@ -16,6 +16,7 @@ datadir = /var/lib/mysql
 socket = /var/lib/mysql/mysql.sock
 pid-file = /var/lib/mysql/mysqld.pid
 event_scheduler = off
+percona_telemetry_disable = 1
 
 innodb_buffer_pool_size = 3G
 
@@ -43,8 +44,6 @@ secure-file-priv = /var/lib/mysql-files/
 
 explicit_defaults_for_timestamp = 1
 sysdate-is-now = 1
-
-early-plugin-load = keyring_file.so
 
 ssl_ca = /etc/ssl/mysql/ca.pem
 ssl_cert = /etc/ssl/mysql/server-cert.pem

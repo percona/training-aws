@@ -19,7 +19,7 @@ $subnet_map = array(
 $ec2 = Aws\Ec2\Ec2Client::factory(array(
 	'key' => $aws_key,
 	'secret' => $aws_secret,
-	'region' => $config['Region'],
+	'region' => $config['Region'] ?? $options['region'],
 	'version'=> 'latest'));
 
 switch($options['action'])
@@ -33,6 +33,9 @@ switch($options['action'])
 		break;
 	case 'REBUILD':
 		rebuildConfigFile();
+		break;
+	case 'LIST':
+		listVpc();
 		break;
 }
 
@@ -116,6 +119,42 @@ function removeVpc()
 	// default one), and so on.
 	
 	printf("Not implemented - Remove VPC's manually in web gui console.\n");
+}
+
+function listVpc()
+{
+	global $ec2, $config, $options;
+
+	try
+	{
+		printf("-- Listing VPCs in '%s' \n", $options['region']);
+
+		$res = $ec2->describeVpcs();
+
+		$vpcs = $res->get('Vpcs');
+		foreach($vpcs as $vpc)
+		{
+			printf("- VPC: %-25s", $vpc['VpcId']);
+
+			if(isset($vpc['Tags']))
+			{
+				foreach($vpc['Tags'] as $tag)
+				{
+					if ($tag['Key'] == 'Name')
+					{
+						printf("%s\n", $tag['Value']);
+					}
+				}
+			}
+			else
+				printf("(No tags on VPC)\n");
+		}
+	}
+	catch(Exception $e)
+	{
+		printf("\n** Unable to list VPCs: %s\n%s**\n", $e->getMessage(), $e->getTraceAsString());
+		dry_exit();
+	}
 }
 
 function addNewVpc()
@@ -809,7 +848,7 @@ function parseOptions()
 	}
 	
 	// Action is required
-	$actions = array('ADD', 'DROP', 'STATUS', 'TAG', 'REBUILD');
+	$actions = array('ADD', 'DROP', 'STATUS', 'TAG', 'REBUILD', 'LIST');
 	if (!isset($_opt['action']) || !in_array($_opt['action'], $actions))
 	{
 		printf("-a is a required option. Possible values are: %s\n",
@@ -826,14 +865,14 @@ function parseOptions()
 		exit();
 	}
 	
-	// Suffix is required
-	if (!isset($_opt['suffix']) || strlen($_opt['suffix']) < 3)
+	// Suffix is required, except on LIST
+	if ($_opt['action'] != 'LIST' && (!isset($_opt['suffix']) || strlen($_opt['suffix']) < 3))
 	{
 		printf("-p is required. 3 character minimum.\n");
 		printHelp();
 		exit();
 	}
-		
+
 	return $_opt;
 }
 
@@ -854,10 +893,16 @@ function loadConfig()
 {
 	global $config, $options;
 	
-	// Retrieve or Save settings to cache file
 	$config = array();
+
+	if ($options['action'] == 'LIST')
+	{
+		return $config;
+	}
+
+	// Retrieve or Save settings to cache file
 	$config['configfile'] = getConfigFile($options['suffix'], $options['region']);
-	
+
 	if (file_exists($config['configfile']))
 	{
 		if($config = json_decode(file_get_contents($config['configfile']), true))
@@ -877,11 +922,11 @@ function loadConfig()
 			printf("\n** No config file found. Have you configured the VPC? **\n\n");
 			exit();
 		}
-		
+	
 		$config['Region'] = $options['region'];
 		$config['Suffix'] = $options['suffix'];
 	}
-	
+
 	return $config;
 }
 

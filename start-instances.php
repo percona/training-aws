@@ -3,7 +3,7 @@
 
 include 'config.php';
 
-$actions      = array('ADD', 'DROP', 'GENHOSTS', 'GENPUBHOSTS', 'GETANSIBLEHOSTS', 'GETCSV', 'GETSSHCONFIG', 'SYNCDYNAMO');
+$actions      = array('ADD', 'DROP', 'LISTINSTANCES', 'GETANSIBLEHOSTS', 'GETCSV', 'GETSSHCONFIG', 'SYNCDYNAMO');
 $machineTypes = array('db1', 'db2', 'scoreboard', 'app', 'pmm', 'mysql1', 'mysql2', 'mysql3', 'pxc', 'gr', 'node1', 'node2', 'node3', 'node4', 'mongodb');
 
 const DEBUG = false;
@@ -37,11 +37,8 @@ switch($options['action'])
 	case 'TAG':
 		tagInstances();
 		break;
-	case 'GENHOSTS':
-		getHostsFile($ip = "Private");
-		break;
-	case 'GENPUBHOSTS':
-		getHostsFile($ip = "Public");
+	case 'LISTINSTANCES':
+		listInstances();
 		break;
 	case 'GETANSIBLEHOSTS':
 		getAnsibleHosts();
@@ -51,9 +48,6 @@ switch($options['action'])
 		break;
 	case 'SYNCDYNAMO':
 		syncDynamo();
-		break;
-	case 'LISTALL':
-		listAllInstances();
 		break;
 	default:
 		printf("!! Unknown action !!\n");
@@ -116,7 +110,7 @@ function getAnsibleHosts()
 	}
 	print "\n";
 	print "[all:vars]\n";
-	print "ansible_ssh_user=ec2-user\n";
+	print "ansible_ssh_user=rocky\n";
 	print "ansible_become=true\n";
 	print "ansible_ssh_private_key_file=Percona-Training.key\n";
 	print "\n";
@@ -221,6 +215,7 @@ function syncDynamo()
 
 	try
 	{
+		// Then search for instances, and add
 		$reservations = searchInstanceMetadataForTag($options['suffix']);
 
 		$frontLength = strlen(sprintf("Percona-Training-%s-", $options['suffix']));
@@ -348,48 +343,29 @@ function tagInstances()
 	}
 }
 
-function getHostsFile($ip = 'Private', $asArray = false)
+function listInstances()
 {
 	global $ec2, $options, $config;
-
-	switch ($ip)
-	{
-		case "Private":
-			$ip = "PrivateIpAddress";
-			break;
-		case "Public":
-			$ip = "PublicIpAddress";
-			break;
-		default:
-			die("Invalid IP type");
-	}
 
 	// get instances
 	$reservations = searchInstanceMetadataForTag($options['suffix']);
 
 	$frontLength = strlen(sprintf("Percona-Training-%s-", $options['suffix']));
 
-	$hosts = array();
+	if(empty($reservations))
+	{
+		print("! No instances found for '{$options['suffix']}' !\n");
+		return;
+	}
+
 	foreach ($reservations as $instance)
 	{
 		$fullName = $instance['Hostname'];
 		$typeTeamName = substr($fullName, $frontLength);
 
-		if (!$asArray)
-		{
-			printf("%-15s %-30s %-10s\n",
-				$instance[$ip], $fullName, $typeTeamName);
-		}
-		else
-		{
-			$hosts[] = array(
-				'ip' => $instance[$ip],
-				'fqdn' => $fullName,
-				'team' => $typeTeamName);
-		}
+		printf("%-15s %-30s %-10s\n",
+				$instance['PublicIpAddress'], $fullName, $typeTeamName);
 	}
-
-	if ($asArray) return $hosts;
 }
 
 function getSshConfig()
@@ -417,7 +393,7 @@ function getSshConfig()
 
 			fwrite($fp, sprintf("Host %s %s\n", $instance['Hostname'], $typeTeamName));
 			fwrite($fp, sprintf("  HostName %s\n", $instance['PublicIpAddress']));
-			fwrite($fp, sprintf("  User ec2-user\n"));
+			fwrite($fp, sprintf("  User rocky\n"));
 			fwrite($fp, sprintf("  IdentityFile %s.key\n", $config['KeyPair']['KeyName']));
 			fwrite($fp, sprintf("  StrictHostKeyChecking no\n"));
 			fwrite($fp, sprintf("  ForwardAgent yes\n"));
@@ -608,10 +584,6 @@ function searchInstanceMetadataForTag($tag)
 				'Name' => 'tag:Name',
 				'Values' => [$fTag]
 			],
-			[
-				'Name' => 'instance-state-name',
-				'Values' => ['running']
-			]
 		],
 	]);
 
@@ -698,7 +670,7 @@ function parseOptions()
 
 	// The three parameters always required are: action, region and suffix
 	// Some actions require other parameters and some only require the base three.
-	$onlyNeedBaseThree = array('GETSSHCONFIG', 'GENHOSTS', 'GENPUBHOSTS', 'GETANSIBLEHOSTS', 'TAG', 'DROP', 'SYNCDYNAMO');
+	$onlyNeedBaseThree = array('GETSSHCONFIG', 'GETANSIBLEHOSTS', 'TAG', 'DROP', 'SYNCDYNAMO', 'LISTINSTANCES');
 
 	// Check a few things if ADDing instances
 	if ($_opt['action'] == "ADD")

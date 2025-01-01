@@ -1,15 +1,16 @@
 #!/bin/bash		
 
-centosversion=`rpm -qi centos-release  | grep Version | awk '{ print $3}'`
+osversion=`grep -o '[0-9]\+\.[0-9]\+' /etc/rocky-release | cut -d. -f1`
 
 echo "### Starting Package Upgrades"
-yum -y upgrade
+dnf -y upgrade
 
 echo "### Installing useful packages"
-yum install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-$centosversion.noarch.rpm
-yum install -y nano vim screen git telnet unzip lsof socat wget sysstat htop sudo cloud-init libselinux-python yum-plugin-downloadonly openssl
-yum clean all
-yum install --downloadonly httpd php php-mysql mysql-utilities openssl sysbench psmisc
+dnf install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-$osversion.noarch.rpm
+/usr/bin/crb enable
+
+dnf install -y nano vim screen git telnet unzip lsof socat wget sysstat htop sudo cloud-init openssl
+dnf clean all
 
 # Don't require tty for sudoers
 sed -i "s/^.*requiretty/#Defaults requiretty/" /etc/sudoers
@@ -41,9 +42,6 @@ cat <<MYPATH >/etc/profile.d/usr-local-bin.sh
 #!/bin/bash
 export PATH=$PATH:/usr/local/bin
 MYPATH
-
-echo "### Remove mariadb-libs"
-yum remove -y mariadb-libs
 
 # Flush changes to disk
 sync && sleep 1 && sync
