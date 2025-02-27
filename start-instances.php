@@ -381,7 +381,7 @@ function getSshConfig()
 	try
 	{
 
-		if(!$fp = fopen($sshConfigFile, "a"))
+		if(!$fp = fopen($sshConfigFile, "w"))
 		{
 			throw new Exception("Cannot open file $sshConfigFile");
 		}

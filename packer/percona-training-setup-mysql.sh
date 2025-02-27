@@ -32,6 +32,7 @@ TOOLKIT
 echo "### Install Percona Repo"
 dnf install -y http://repo.percona.com/yum/percona-release-latest.noarch.rpm
 percona-release setup ps80 -y
+percona-release enable tools
 
 # Disable telemetry
 export PERCONA_TELEMETRY_DISABLE=1
@@ -47,7 +48,8 @@ dnf install -y \
 	percona-server-shared.x86_64 \
 	percona-xtrabackup-80.x86_64 \
 	percona-toolkit.x86_64 \
-	qpress
+	qpress \
+	perl-DBD-MySQL
 
 # Again, disable telemetry
 systemctl stop percona-telemetry-agent
