@@ -6,6 +6,9 @@ include 'config.php';
 $options = parseOptions();
 $config = loadConfig();
 
+use Aws\Ec2\Ec2Client;
+use Aws\Exception\AwsException;
+
 /**
  * Subnet mapping for those rare cases we need to link VPCs
 */
@@ -16,18 +19,20 @@ $subnet_map = array(
 );
 
 /* This is the EC2 API Client object */
-$ec2 = Aws\Ec2\Ec2Client::factory(array(
-	'key' => $aws_key,
-	'secret' => $aws_secret,
+$ec2 = new Ec2Client([
+	'credentials' => [
+		'key' => $aws_key,
+		'secret' => $aws_secret,
+	],
 	'region' => $config['Region'] ?? $options['region'],
-	'version'=> 'latest'));
+	'version'=> 'latest',
+]);
 
 switch($options['action'])
 {
 	case 'ADD':
 		addNewVpc();
 		break;
-	case 'STOP':
 	case 'DROP':
 		removeVpc();
 		break;
@@ -111,14 +116,62 @@ function rebuildConfigFile()
 function removeVpc()
 {
 	global $ec2, $config, $options;
-	
-	// You must detach or delete all gateways and resources that are associated with 
-	// the VPC before you can delete it. For example, you must terminate all instances
-	// running in the VPC, delete all security groups associated with the VPC (except
-	// the default one), delete all route tables associated with the VPC (except the
-	// default one), and so on.
-	
-	printf("Not implemented - Remove VPC's manually in web gui console.\n");
+
+	// We must first drop/delete all the parts of the VPC (ie: gateways, subnets, security groups, etc)
+
+	try
+	{
+		$vpcId = $config['Vpc']['VpcId'] ?? 0;
+		if ($vpcId === 0) {
+			throw new Exception('No VPC ID found. Config good?');
+		}
+
+		/**
+		 * Delete security group
+		 * Since there is only a single group, 'default' that cannot be deleted by the user,
+		 * we don't do anything with the SG
+		 */
+
+		// Delete subnet
+		$subnetId = $config['Subnet']['SubnetId'] ?? 0;
+		if ($subnetId === 0) {
+			throw new Exception('No subnet Id found. Config good?');
+		}
+		$res = $ec2->deleteSubnet(['SubnetId' => $subnetId]);
+		print("-- Subnet deleted\n");
+
+		// Delete route table
+		$routeId = $config['RouteTable']['RouteTableId'] ?? 0;
+		if ($routeId === 0) {
+			throw new Exception('No route Id found. Config good?');
+		}
+		$res = $ec2->deleteRouteTable(['RouteTableId' => $routeId]);
+		print("-- Route tables deleted\n");
+
+		// Detach gateway
+		$gatewayId = $config['InternetGateway']['InternetGatewayId'] ?? 0;
+		if ($gatewayId === 0) {
+			throw new Exception('No gateway Id found. Config good?');
+		}
+		$res = $ec2->detachInternetGateway([
+			'InternetGatewayId' => $gatewayId,
+			'VpcId' => $vpcId,
+		]);
+		print("-- Gateway detached\n");
+
+		// Delete gateway
+		$res = $ec2->deleteInternetGateway(['InternetGatewayId' => $gatewayId]);
+		print("-- Gateway deleted\n");
+
+		// Delete VPC
+		$res = $ec2->deleteVpc(['VpcId' => $vpcId]);
+		printf("-- VPC Deleted!!\n");
+	}
+	catch(Exception $e)
+	{
+		printf("\n** Unable to remove VPC: %s\n", $e->getMessage());
+		dry_exit();
+	}
 }
 
 function listVpc()

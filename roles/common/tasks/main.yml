@@ -15,7 +15,7 @@
     fi
 
 - name: Update packages
-  yum:
+  dnf:
     state: latest
     name:
       - ca-certificates

@@ -6,11 +6,14 @@ $awsCredentials = $_SERVER['HOME'] . "/.aws/credentials";
 // Check for existence and parse
 if (file_exists($awsCredentials)) {
 	
-	$parsed = parse_ini_file($awsCredentials);
-	
-	$aws_key = $parsed['aws_access_key_id'];
-	$aws_secret = $parsed['aws_secret_access_key'];
-	
+	$parsed = parse_ini_file($awsCredentials, process_sections: true);
+	if (!isset($parsed['default'])) {
+		die("Unable to determine AWS credentials. Ensure a 'default' profile exists in {$awsCredentials}");
+	}
+
+	$aws_key = $parsed['default']['aws_access_key_id'];
+	$aws_secret = $parsed['default']['aws_secret_access_key'];
+
 	// Validate
 	if (!preg_match("/(?<![A-Z0-9])[A-Z0-9]{20}(?![A-Z0-9])/", $aws_key)) {
 		die("AWS Key does not match known pattern.\nCheck credentials file.\n");
@@ -21,7 +24,7 @@ if (file_exists($awsCredentials)) {
 }
 else
 {
-	die("Unable to locate AWS credentials file: $awsCredentials\nPlease configure credentials using `aws configure`.\n");
+	die("Unable to locate AWS credentials file: {$awsCredentials}\nPlease configure credentials using `aws configure`.\n");
 }
 
 define('DRY_RUN', false);
