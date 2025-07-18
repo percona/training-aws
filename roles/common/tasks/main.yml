@@ -20,3 +20,5 @@
     name:
       - ca-certificates
       - dnf-plugin-versionlock
+      - openssh
+      - openssh-server
