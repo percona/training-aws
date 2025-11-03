@@ -33,6 +33,14 @@
       - docker-ce-cli
       - containerd.io
       - conntrack-tools
+      - bash-completion
+
+- name: install k9s
+  yum:
+    state: present
+    disable_gpg_check: true
+    name:
+      - https://github.com/derailed/k9s/releases/latest/download/k9s_linux_amd64.rpm
 
 - name: enable docker
   systemd:
@@ -54,7 +62,18 @@
     src: minikube-config.json
     dest: /root/.minikube/config/config.json
 
+- name: enable settings
+  ansible.posix.sysctl:
+    name: fs.protected_regular
+    value: 0
+    state: present
+
 - name: start minikube
   command: /usr/local/bin/minikube start --force
   args:
     creates: /root/.minikube/client.crt
+
+- name: enable bash completion for kubectl
+  ansible.builtin.shell: /usr/local/bin/kubectl completion bash > /etc/bash_completion.d/kubectl
+  args:
+    creates: /etc/bash_completion.d/kubectl

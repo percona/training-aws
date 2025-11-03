@@ -1,0 +1,75 @@
+---
+# Tasks common to all postgresql nodes
+
+- name: yum remove podman
+  yum:
+    state: absent
+    update_cache: yes
+    name:
+      - podman
+      - podman-docker
+      - buildah
+
+- name: add docker repo
+  yum_repository:
+    name: Docker-CE
+    description: Docker CE Stable
+    baseurl: https://download.docker.com/linux/centos/{{ ansible_facts['distribution_major_version'] }}/$basearch/stable
+    gpgcheck: 1
+    gpgkey:
+      - https://download.docker.com/linux/centos/gpg
+
+- name: yum install docker, lvm2, device-mapper
+  yum:
+    state: present
+    update_cache: yes
+    name:
+      - device-mapper-persistent-data
+      - lvm2
+      - docker-ce
+      - docker-ce-cli
+      - containerd.io
+      - conntrack-tools
+      - bash-completion
+
+- name: enable docker
+  systemd:
+    enabled: yes
+    name: docker.service
+
+- name: restart docker
+  systemd:
+    state: restarted
+    name: docker
+
+- name: enable settings
+  ansible.posix.sysctl:
+    name: fs.protected_regular
+    value: 0
+    state: present
+
+- name: enable docker autocompletion
+  ansible.builtin.shell:
+    cmd: docker completion bash > /etc/bash_completion.d/docker
+    creates: /etc/bash_completion.d/docker
+
+- name: Create docker network
+  community.docker.docker_network:
+    name: pgnet
+
+- name: Get the container for the version used in the training
+  community.docker.docker_image_pull:
+    name: percona/percona-distribution-postgresql:{{ training_pg_version }}
+
+- name: Create directory for postgresql training
+  ansible.builtin.file:
+    path: ./postgresql_training
+    state: directory
+
+- name: Copy shell utilities
+  ansible.builtin.template:
+    src: "{{ item.src }}"
+    dest: "{{ item.dest }}"
+    mode: "{{ item.mode | default('0644') }}"
+  loop:
+    - { src: 'templates/start_container.sh.j2', dest: '/.postgresql_training/', mode: '0644' }

@@ -1,0 +1,33 @@
+#!/bin/bash
+
+# Check for required argument
+if [[ $# -ne 1 ]]; then
+  echo "Usage: $0 <node_number>"
+  echo "Where <node_number> must be 1, 2, or 3"
+  exit 1
+fi
+
+NODE_NUM="$1"
+
+# Validate that it's 1, 2, or 3
+if [[ "$NODE_NUM" != "1" && "$NODE_NUM" != "2" && "$NODE_NUM" != "3" ]]; then
+  echo "Error: Invalid node number. Must be 1, 2, or 3."
+  exit 2
+fi
+
+# Compute dynamic values
+PORT=$((5410 + NODE_NUM))
+VOLUME="pg${NODE_NUM}-pgdata"
+HOSTNAME="pg${NODE_NUM}"
+CONTAINER_NAME="pg${NODE_NUM}"
+
+# Run Docker container
+docker run \
+  -p ${PORT}:5432 \
+  --env=PGSTART=${NODE_NUM} \
+  --env=POSTGRES_PASSWORD=postgres \
+  -v ${VOLUME}:/pgdata \
+  --hostname ${HOSTNAME} \
+  --network=pgnet \
+  --name=${CONTAINER_NAME} \
+  -dt percona/percona-distribution-postgresql:{{ training_pg_version }}
