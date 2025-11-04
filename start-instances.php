@@ -852,7 +852,6 @@ function getInstanceIds($res, $type = 'Default')
 			break;
 		default:
 			die("ERROR< could not find instanceID type\n");
-			break;
 	}
 
 	foreach ($instances as $instance)
