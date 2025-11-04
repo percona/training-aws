@@ -1,0 +1,2 @@
+PATH="$PATH:$HOME/postgresql_training"
+export PATH

@@ -18,8 +18,8 @@ fi
 # Compute dynamic values
 PORT=$((5410 + NODE_NUM))
 VOLUME="pg${NODE_NUM}-pgdata"
-HOSTNAME="pg${NODE_NUM}"
-CONTAINER_NAME="pg${NODE_NUM}"
+HOSTNAME="pgc${NODE_NUM}"
+CONTAINER_NAME="pgc${NODE_NUM}"
 
 # Run Docker container
 docker run \
@@ -31,3 +31,15 @@ docker run \
   --network=pgnet \
   --name=${CONTAINER_NAME} \
   -dt percona/percona-distribution-postgresql:{{ training_pg_version }}
+
+# Install software in the container
+docker exec -u 0 -it ${CONTAINER_NAME} /bin/bash -c "dnf install -y openssh-clients openssh-server && ssh-keygen -A"
+
+# Start the sshd service in the container
+docker exec -u 0 -d ${CONTAINER_NAME} /sbin/sshd
+
+docker cp $HOME/.ssh/id_rsa.pub ${CONTAINER_NAME}:authorized_keys
+
+docker exec -u 0 -d ${CONTAINER_NAME} /bin/bash -c "mkdir /root/.ssh ; mkdir /var/lib/pgsql/.ssh ; mv /authorized_keys /root/.ssh ; chown root:root /root/.ssh/authorized_keys ; cp /root/.ssh/authorized_keys /var/lib/pgsql/.ssh/authorized_keys ; chown -R postgres:postgres /var/lib/pgsql/.ssh"
+
+docker cp $HOME/postgresql_training/pgsql_profile ${CONTAINER_NAME}:/var/lib/pgsql/.pgsql_profile
