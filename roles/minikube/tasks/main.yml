@@ -3,7 +3,7 @@
 
 - name: download kubectl
   get_url:
-    url: https://storage.googleapis.com/kubernetes-release/release/v1.23.0/bin/linux/amd64/kubectl
+    url: https://dl.k8s.io/release/v1.31.0/bin/linux/amd64/kubectl
     dest: /usr/local/bin/kubectl
     mode: 0755
 
@@ -52,6 +52,19 @@
     state: restarted
     name: docker
 
+- name: Install crictl to /usr/local/bin and link to /usr/bin
+  shell: |
+    # Download if not exists
+    if [ ! -f /usr/local/bin/crictl ]; then
+      curl -L https://github.com/kubernetes-sigs/cri-tools/releases/download/v1.28.0/crictl-v1.28.0-linux-amd64.tar.gz -o /tmp/crictl.tar.gz
+      tar -xzf /tmp/crictl.tar.gz -C /usr/local/bin/
+      chmod +x /usr/local/bin/crictl
+    fi
+
+    # Create symlink in /usr/bin
+    ln -sf /usr/local/bin/crictl /usr/bin/crictl
+  become: yes
+
 - name: create /root/.minikube/config
   file:
     path: /root/.minikube/config
@@ -69,7 +82,7 @@
     state: present
 
 - name: start minikube
-  command: /usr/local/bin/minikube start --force
+  command: /usr/local/bin/minikube start --driver=docker --kubernetes-version=v1.28.0 --force
   args:
     creates: /root/.minikube/client.crt
 
