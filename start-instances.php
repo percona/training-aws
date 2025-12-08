@@ -4,7 +4,7 @@
 include 'config.php';
 
 $actions      = array('ADD', 'DROP', 'LISTINSTANCES', 'GETANSIBLEHOSTS', 'GETCSV', 'GETSSHCONFIG', 'SYNCDYNAMO');
-$machineTypes = array('db1', 'db2', 'scoreboard', 'app', 'pmm', 'mysql1', 'mysql2', 'mysql3', 'pxc', 'gr', 'node1', 'node2', 'node3', 'node4', 'mongodb');
+$machineTypes = array('db1', 'db2', 'scoreboard', 'app', 'pmm', 'mysql1', 'mysql2', 'mysql3', 'pxc', 'gr', 'node1', 'node2', 'node3', 'node4', 'mongodb','pg1');
 
 const DEBUG = false;
 
@@ -424,6 +424,7 @@ function addNewInstance()
 		$instanceType = "t3.large";
 		switch ($machine)
 		{
+			case "pg1":
 			case "app":
 				$instanceType = "t3.xlarge";
 				break;
@@ -851,7 +852,6 @@ function getInstanceIds($res, $type = 'Default')
 			break;
 		default:
 			die("ERROR< could not find instanceID type\n");
-			break;
 	}
 
 	foreach ($instances as $instance)

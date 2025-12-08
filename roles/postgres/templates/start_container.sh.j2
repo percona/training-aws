@@ -1,0 +1,45 @@
+#!/bin/bash
+
+# Check for required argument
+if [[ $# -ne 1 ]]; then
+  echo "Usage: $0 <node_number>"
+  echo "Where <node_number> must be 1, 2, or 3"
+  exit 1
+fi
+
+NODE_NUM="$1"
+
+# Validate that it's 1, 2, or 3
+if [[ "$NODE_NUM" != "1" && "$NODE_NUM" != "2" && "$NODE_NUM" != "3" ]]; then
+  echo "Error: Invalid node number. Must be 1, 2, or 3."
+  exit 2
+fi
+
+# Compute dynamic values
+PORT=$((5410 + NODE_NUM))
+VOLUME="pg${NODE_NUM}-pgdata"
+HOSTNAME="pgc${NODE_NUM}"
+CONTAINER_NAME="pgc${NODE_NUM}"
+
+# Run Docker container
+docker run \
+  -p ${PORT}:5432 \
+  --env=PGSTART=${NODE_NUM} \
+  --env=POSTGRES_PASSWORD=postgres \
+  -v ${VOLUME}:/pgdata \
+  --hostname ${HOSTNAME} \
+  --network=pgnet \
+  --name=${CONTAINER_NAME} \
+  -dt percona/percona-distribution-postgresql:{{ training_pg_version }}
+
+# Install software in the container
+docker exec -u 0 -it ${CONTAINER_NAME} /bin/bash -c "dnf install -y openssh-clients openssh-server && ssh-keygen -A"
+
+# Start the sshd service in the container
+docker exec -u 0 -d ${CONTAINER_NAME} /sbin/sshd
+
+docker cp $HOME/.ssh/id_rsa.pub ${CONTAINER_NAME}:authorized_keys
+
+docker exec -u 0 -d ${CONTAINER_NAME} /bin/bash -c "mkdir /root/.ssh ; mkdir /var/lib/pgsql/.ssh ; mv /authorized_keys /root/.ssh ; chown root:root /root/.ssh/authorized_keys ; cp /root/.ssh/authorized_keys /var/lib/pgsql/.ssh/authorized_keys ; chown -R postgres:postgres /var/lib/pgsql/.ssh"
+
+docker cp $HOME/postgresql_training/pgsql_profile ${CONTAINER_NAME}:/var/lib/pgsql/.pgsql_profile

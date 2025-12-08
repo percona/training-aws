@@ -1,0 +1,112 @@
+---
+# Tasks common to all postgresql nodes
+
+- name: yum remove podman
+  yum:
+    state: absent
+    update_cache: yes
+    name:
+      - podman
+      - podman-docker
+      - buildah
+
+- name: add docker repo
+  yum_repository:
+    name: Docker-CE
+    description: Docker CE Stable
+    baseurl: https://download.docker.com/linux/centos/{{ ansible_facts['distribution_major_version'] }}/$basearch/stable
+    gpgcheck: 1
+    gpgkey:
+      - https://download.docker.com/linux/centos/gpg
+
+- name: yum install docker, lvm2, device-mapper
+  yum:
+    state: present
+    update_cache: yes
+    name:
+      - device-mapper-persistent-data
+      - lvm2
+      - docker-ce
+      - docker-ce-cli
+      - containerd.io
+      - conntrack-tools
+      - bash-completion
+
+- name: enable docker
+  systemd:
+    enabled: yes
+    name: docker.service
+
+- name: restart docker
+  systemd:
+    state: restarted
+    name: docker
+
+- name: enable settings
+  ansible.posix.sysctl:
+    name: fs.protected_regular
+    value: 0
+    state: present
+
+- name: enable docker autocompletion
+  ansible.builtin.shell:
+    cmd: docker completion bash > /etc/bash_completion.d/docker
+    creates: /etc/bash_completion.d/docker
+
+- name: Create docker network
+  community.docker.docker_network:
+    name: pgnet
+
+- name: Add user 'rocky' to 'docker' group
+  ansible.builtin.user:
+    name: rocky
+    groups: docker
+    append: yes
+
+- name: Get the container for the version used in the training
+  community.docker.docker_image_pull:
+    name: percona/percona-distribution-postgresql:{{ training_pg_version }}
+
+- name: Create directories for postgresql training
+  ansible.builtin.file:
+    path: "{{ item.path }}"
+    state: directory
+    owner: rocky
+    group: rocky
+  loop:
+    - { path: './postgresql_training/' }
+    - { path: './.bashrc.d/' }
+
+- name: Copy shell utilities
+  ansible.builtin.template:
+    src: "{{ item.src }}"
+    dest: "{{ item.dest }}"
+    mode: "{{ item.mode | default('0644') }}"
+    owner: rocky
+    group: rocky
+  loop:
+    - { src: 'files/add_containers_to_hosts.sh', dest: './postgresql_training/add_containers_to_hosts.sh', mode: '0755' }
+    - { src: 'files/connect_container_root.sh', dest: './postgresql_training/connect_container_root.sh', mode: '0755' }
+    - { src: 'files/connect_container.sh', dest: './postgresql_training/connect_container.sh', mode: '0755' }
+    - { src: 'files/restart_container.sh', dest: './postgresql_training/restart_container.sh', mode: '0755' }
+    - { src: 'files/pgtraining_path', dest: '.bashrc.d/pgtraining_path', mode: '0755' }
+    - { src: 'templates/start_container.sh.j2', dest: './postgresql_training/start_container.sh', mode: '0755' }
+    - { src: 'templates/pgsql_profile.j2', dest: './postgresql_training/pgsql_profile', mode: '0755' }
+    - { src: 'files/get_pg_network.sh', dest: 'postgresql_training/get_pg_network.sh', mode: '0755' }
+
+- name: Enable Percona Postgres Repo
+  ansible.builtin.command:
+    cmd: percona-release enable ppg-{{ training_pg_version }}
+
+- name: Install Percona Postgres
+  yum:
+    state: latest
+    name:
+      - percona-postgresql{{ 17 }}
+
+- name: Generate local ssh keys
+  community.crypto.openssh_keypair:
+    path: .ssh/id_rsa
+    mode: '0600'
+    owner: rocky
+    group: rocky
