@@ -23,6 +23,7 @@ $ec2 = new Ec2Client([
 	'credentials' => [
 		'key' => $aws_key,
 		'secret' => $aws_secret,
+		'token' => $aws_token,
 	],
 	'region' => $config['Region'] ?? $options['region'],
 	'version'=> 'latest',
