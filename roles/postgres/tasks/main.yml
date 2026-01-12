@@ -102,7 +102,8 @@
   yum:
     state: latest
     name:
-      - percona-postgresql{{ 17 }}
+      - percona-postgresql{{ training_pg_version }}
+      - percona-postgresql{{ training_pg_version }}-server
 
 - name: Generate local ssh keys
   community.crypto.openssh_keypair:
