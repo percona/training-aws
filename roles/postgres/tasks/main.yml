@@ -104,6 +104,7 @@
     name:
       - percona-postgresql{{ training_pg_version }}
       - percona-postgresql{{ training_pg_version }}-server
+      - percona-postgresql{{ training_pg_version }}-contrib
 
 - name: Generate local ssh keys
   community.crypto.openssh_keypair:
