@@ -27,3 +27,4 @@
   systemd:
     state: stopped
     name: iptables
+  ignore_errors: yes
