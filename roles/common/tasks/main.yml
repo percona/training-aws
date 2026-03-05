@@ -22,8 +22,3 @@
       - dnf-plugin-versionlock
       - openssh
       - openssh-server
-
-- name: Disable iptables
-  systemd:
-    state: stopped
-    name: iptables
