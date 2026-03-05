@@ -1,11 +1,17 @@
 ---
 # Tasks for sysbench stuff
 
+- name: Check if sysbench installed
+  ansible.builtin.yum:
+    list: sysbench-1.1.0-2
+  register: package_check
+
 - name: Install sysbench v1.1
   tags: sysbench11
   shell: >
     wget https://lefred.be/wp-content/uploads/2023/01/sysbench-1.1.0-2.el9.x86_64.rpm && \
     rpm -Uvh --nodeps sysbench-1.1.0-2.el9.x86_64.rpm
+  when: package_check.results | selectattr('yumstate', 'equalto', 'installed') | list | length > 0
 
 - name: Update sysbench scripts
   copy: src=packer/sysbench/{{ item.src }} dest=/usr/local/bin/ mode={{ item.mode }} owner=rocky
