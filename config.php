@@ -13,6 +13,7 @@ if (file_exists($awsCredentials)) {
 
 	$aws_key = $parsed['default']['aws_access_key_id'];
 	$aws_secret = $parsed['default']['aws_secret_access_key'];
+	$aws_token = $parsed['default']['aws_session_token'];
 
 	// Validate
 	if (!preg_match("/(?<![A-Z0-9])[A-Z0-9]{20}(?![A-Z0-9])/", $aws_key)) {
