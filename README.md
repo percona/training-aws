@@ -2,18 +2,10 @@
 
 ## AMI List
 
-```
-ami-0c2adaf7cfbf731ec - Centos 7 - MongoDB 4.4 (old)
-ami-0b02004363780dd42 - Centos 7 - MySQL (old)
-ami-0f5dcffa34c281c1a - Rocky 9 - MySQL / Kubernetes Operators
-ami-0ad8bfd4b10994785 - Centos 9 - MySQL / MongoDB 7.0
-```
+Always use the latest AMI in the region you are delivering from. Leave off `-i`, and the script will show you all available AMIs in this region:
 
-The MongoDB AMI is available only in `us-west-2` region at this time. 
-
-* If the latest AMI doesn't work, try the previous AMI
-  * Leave off `-i` and the script will show you all available AMIs in this region:
 ```
+Example:
 
 $ ./start-instances.php -a ADD -r eu-west-1 -p TREK -c 6 -m db1
 You must set the AMI to use for the training instances.
@@ -23,25 +15,24 @@ Name                           - AMI
 Percona-Training-20200321-AMI  - ami-0e8223fee4b885841
 Percona-Training-20200710-AMI  - ami-0b02004363780dd42
 ...
-
 ```
 
 ## Installation
 
 ### Packages required
 
-You need PHP 7.2+ on your laptop to run the scripts. Also AWS CLI and Ansible are required.
+You need PHP 8.5+ and `composer` to run the scripts. Ansible is also required.
 
 On Mac, easy with Homebrew:
 
 ```
-$ brew install php@7.2 ansible awscli composer
+$ brew install php@8.5 ansible awscli composer
 ```
 
 On Linux the following packages are required:
 
 ```
-$ sudo apt-get install php7.2 php-xml php-mbstring ansible awscli composer
+$ sudo apt-get install php8.5 php-xml php-mbstring ansible awscli composer
 ```
 
 After you install composer, install all necessary PHP packages:
@@ -78,11 +69,13 @@ There are multiple "machine types" which are used in different training courses:
   * `node1`: This instance is used in the K8S Operator tutorials. Each student should receive 1 of these.
   * `mongodb`: This instance has the Percona Server for MongoDB packages. Each student should receive 1 of these for the MongoDB training.
 
-There are 2 machine type aliases, `gr` and `pxc`, both are aliases for all 4 types: `app`, `mysql1`, `mysql2`, and `mysql3`
+There are 2 machine type aliases, `gr` and `pxc`, both are aliases which will deploy each of the 4 types: `app`, `mysql1`, `mysql2`, and `mysql3`
 
 ## Set Up Instances
 
 ### 1. Ensure DynamoDB table exists
+
+**NOTE**: You should not need to do this step every time. You can assume this table exists unless the scrips output errors.
 
 Make sure there is a DynamoDB table created on the `us-east-1` region called `percona_training_servers`. This is used to support the training backed but sometimes is deleted. If it is not there, create it with the following structure:
 
@@ -116,10 +109,10 @@ If you need to launch other instance types, simply repeat the above command and 
 You can launch multiple instance types at the same time. Separate each type with `,` or use the two aliases.
 
 ```
--- Launch 4 complete setups for use in the PXC tutorial. A total of 16 (4 teams, each with 4 servers) EC2 instances will be created.
+-- Launch 4 complete setups for use in the PXC tutorial. A total of 16 EC2 instances will be created (4 teams, each with 4 servers).
 ./start-instances.php -a ADD -r eu-west-1 -p TREK -c 4 -m pxc -i ami-014230ad6c3e10ec2
 
--- Launch 7 setups for Operations class, db1 and db2. This will launch 14 instances total.
+-- Launch 7 setups for Operations class, db1 and db2. This will launch 14 instances total (7 teams, each with 2 servers).
 ./start-instances.php -a ADD -r us-west-2 -p TREK -c 7 -m db1,db2 -i ami-014230ad6c3e10ec2
 ```
 
