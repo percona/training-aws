@@ -13,8 +13,6 @@ $config = loadConfig();
 
 /* This is the EC2 API Client object */
 $ec2 = Aws\Ec2\Ec2Client::factory(array(
-	'key' => $aws_key,
-	'secret' => $aws_secret,
 	'region' => $options['region'],
 	'version'=> 'latest'));
 
@@ -22,7 +20,6 @@ use Aws\DynamoDb\Exception\DynamoDbException;
 use Aws\DynamoDb\Marshaler;
 
 $dynamo = Aws\DynamoDb\DynamoDbClient::factory(array(
-	'profile' => 'default',
     'region'  => 'us-east-1',
     'version' => 'latest'));
 
@@ -792,11 +789,7 @@ function tagEntity($entity, $key, $value)
 
 function printAmis($region)
 {
-	global $aws_key, $aws_secret;
-
 	$ec2 = Aws\Ec2\Ec2Client::factory(array(
-		'key' => $aws_key,
-		'secret' => $aws_secret,
 		'region' => $region,
 		'version'=> 'latest'));
 
