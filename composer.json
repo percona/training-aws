@@ -1,5 +1,8 @@
 {
     "require": {
         "aws/aws-sdk-php": "^3.269"
+    },
+    "require-dev": {
+        "phpstan/phpstan": "^1.10"
     }
 }
