@@ -1,9 +1,10 @@
 .PHONY: setup teardown summary
 
-# Example: make setup class="MySQL Training for Developers" client=TREK teams=14 region=eu-west-1
+# Example: make setup class=mysql-dev client=TREK teams=14 region=eu-west-1
 setup:
 	@if [ -z "$(class)" ] || [ -z "$(client)" ] || [ -z "$(teams)" ]; then \
-		echo "Usage: make setup class=\"<Class Name>\" client=<Suffix> teams=<Number> [region=<AWS Region>]"; \
+		echo "Usage: make setup class=<class-slug> client=<Suffix> teams=<Number> [region=<AWS Region>]"; \
+		echo "Run './setup-class.sh' without arguments to see the list of valid slugs."; \
 		exit 1; \
 	fi
 	@bash ./setup-class.sh "$(class)" "$(client)" "$(teams)" "$(region)"
