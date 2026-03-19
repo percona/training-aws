@@ -43,6 +43,14 @@ The standard workflow utilizes a `Makefile` that encapsulates VPC creation, inst
 
 Environments are built based on **Class Slugs**. A slug represents the specific course being taught and automatically deploys the correct architecture (e.g., `db1`, `gr`, `pxc`).
 
+### 0. List Available AMIs
+
+Before launching, you can check which AMIs are available in your target region:
+
+```bash
+make list-amis region=eu-west-1
+```
+
 ### 1. Launch the Environment
 
 Run the `make setup` command, providing the class slug, your client identifier, the number of student teams, and optionally the AWS region (defaults to `us-west-2`).
@@ -102,6 +110,17 @@ Use the following slugs with the `class=` parameter in your `make setup` command
 | PostgreSQL Training for Database Operations Specialists | `pg-ops` | `db1` |
 | PostgreSQL Training for Developers | `pg-dev` | `db1` |
 | PostgreSQL Tutorial | `pg-tutorial` | `db1` |
+
+---
+
+## Technical Details
+
+The provisioning scripts and Ansible playbooks support the following software and configurations:
+
+*   **Operating Systems:** Ubuntu 22.04+, Debian 11+, Rocky Linux 9+.
+*   **Database Versions:** Percona Server for MySQL 8.0, 8.4; Percona Server for MongoDB 7.0; and PMM 3.x client support.
+*   **Security:** IPTables is disabled by default to simplify lab networking.
+*   **SSL:** All MySQL instances are configured with SSL (SHA256).
 
 ---
 

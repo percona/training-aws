@@ -3,7 +3,7 @@
 
 include 'config.php';
 
-$actions      = array('ADD', 'DROP', 'LISTINSTANCES', 'GETANSIBLEHOSTS', 'GETCSV', 'GETSSHCONFIG', 'SYNCDYNAMO');
+$actions      = array('ADD', 'DROP', 'LISTINSTANCES', 'GETANSIBLEHOSTS', 'GETCSV', 'GETSSHCONFIG', 'SYNCDYNAMO', 'LISTAMIS');
 $machineTypes = array('db1', 'db2', 'scoreboard', 'app', 'pmm', 'mysql1', 'mysql2', 'mysql3', 'pxc', 'gr', 'node1', 'node2', 'node3', 'node4', 'mongodb');
 
 const DEBUG = false;
@@ -45,6 +45,9 @@ switch($options['action'])
 		break;
 	case 'SYNCDYNAMO':
 		syncDynamo();
+		break;
+	case 'LISTAMIS':
+		printAmis($options['region']);
 		break;
 	default:
 		printf("!! Unknown action !!\n");

@@ -1,4 +1,8 @@
-.PHONY: setup teardown summary
+.PHONY: setup teardown summary list-amis
+
+# Example: make list-amis region=eu-west-1
+list-amis:
+	@./start-instances.php -a LISTAMIS -r "$${region:-us-west-2}"
 
 # Example: make setup class=mysql-dev client=TREK teams=14 region=eu-west-1
 setup:
