@@ -1,0 +1,46 @@
+name: Quality Guard
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  php-syntax:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Check PHP Syntax
+        run: |
+          find . -name "*.php" -not -path "./vendor/*" -exec php -l {} \; | grep -v "No syntax errors detected" && exit 1 || exit 0
+
+  ansible-lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Install ansible-lint
+        run: pip install ansible-lint
+      - name: Run ansible-lint
+        run: ansible-lint hosts.yml roles/
+
+  packer-validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Setup Packer
+        uses: hashicorp/setup-packer@main
+      - name: Packer Validate
+        run: |
+          for f in packer/*.json; do
+            packer validate "$f"
+          done
+
+  cfn-lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Setup CloudFormation Linter
+        run: pip install cfn-lint
+      - name: Run cfn-lint
+        run: cfn-lint cloudformations/*.yaml

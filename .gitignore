@@ -1,5 +1,4 @@
 vendor
-composer.lock
 .config-*
 ssh_*
 ansible_hosts*
