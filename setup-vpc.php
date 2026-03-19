@@ -20,10 +20,6 @@ $subnet_map = array(
 
 /* This is the EC2 API Client object */
 $ec2 = new Ec2Client([
-	'credentials' => [
-		'key' => $aws_key,
-		'secret' => $aws_secret,
-	],
 	'region' => $config['Region'] ?? $options['region'],
 	'version'=> 'latest',
 ]);
@@ -1029,6 +1025,7 @@ function tagEntity($entity, $key, $value)
 function addName($entity, $value)
 {
 	tagEntity($entity, 'Name', $value);
+	tagEntity($entity, 'TrainingEndDate', date('Y-m-d', strtotime('+7 days')));
 }
 
 function addIngressRule($port, $cidr)
