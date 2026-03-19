@@ -29,10 +29,16 @@ On Mac, easy with Homebrew:
 $ brew install php@8.5 ansible awscli composer
 ```
 
-On Linux the following packages are required:
+On Linux (Ubuntu/Debian) the following packages are required:
 
 ```
 $ sudo apt-get install php8.5 php-xml php-mbstring ansible awscli composer
+```
+
+On Linux (Rocky Linux/RHEL 9) the following packages are required:
+
+```
+$ sudo dnf install php php-xml php-mbstring ansible-core awscli composer
 ```
 
 After you install composer, install all necessary PHP packages:
@@ -169,15 +175,25 @@ Once the keys and teams are distributed, students can connect to instances.
 
 The SSH username is usually `ec2-user` but depending on the AMI it can be different (e.g. `centos`). There is **NO password**. Windows/Putty users can use the PPK file.
 
-### 6. Removing Instances
+### 6. Removing Instances and VPC
 
-After the training is done, you need to remove the instances and the VPC
+After the training is done, you need to remove the instances and the VPC.
+
+#### Remove Instances
 
 ```
 ./start-instances.php -a DROP -r eu-west-1 -i ami-9f80fbec -p TREK
 ```
 
-Unfortunately, you need to manually remove the VPC in the AWS web-console interface:
+#### Remove VPC
+
+You can now remove the VPC and all its associated resources (subnets, gateways, security groups) using the `setup-vpc.php` script:
+
+```
+./setup-vpc.php -a DROP -r eu-west-1 -p TREK
+```
+
+*Note: If the automated script fails to remove a resource, you can still manually remove the VPC in the AWS web-console:*
 
 - Go to https://aws.amazon.com
 - Go to the region where you created the instances
