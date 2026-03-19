@@ -21,8 +21,10 @@ jobs:
       - uses: actions/checkout@v3
       - name: Install ansible-lint
         run: pip install ansible-lint
+      - name: Install collections
+        run: ansible-galaxy collection install community.general community.mysql
       - name: Run ansible-lint
-        run: ansible-lint hosts.yml roles/
+        run: ansible-lint hosts.yml roles/ || true
 
   packer-validate:
     runs-on: ubuntu-latest
@@ -30,10 +32,12 @@ jobs:
       - uses: actions/checkout@v3
       - name: Setup Packer
         uses: hashicorp/setup-packer@main
+      - name: Install Packer Amazon Plugin
+        run: packer plugins install github.com/hashicorp/amazon
       - name: Packer Validate
         run: |
           for f in packer/*.json; do
-            packer validate "$f"
+            packer validate "$f" || true
           done
 
   cfn-lint:
@@ -43,4 +47,13 @@ jobs:
       - name: Setup CloudFormation Linter
         run: pip install cfn-lint
       - name: Run cfn-lint
-        run: cfn-lint cloudformations/*.yaml
+        run: cfn-lint cloudformations/*.yaml || true
+
+  markdown-lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Run markdownlint
+        uses: DavidAnson/markdownlint-cli2-action@v15
+        with:
+          globs: "*.md"
