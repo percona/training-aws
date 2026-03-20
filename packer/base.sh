@@ -32,11 +32,6 @@ sed -i "s/^include /#include /" /etc/nanorc
 # remove root authorized keys after finish
 rm -f /root/.ssh/authorized_keys
 
-# Disable SELinux
-echo "### SELinux Permissive"
-sed -i 's/^SELINUX=.*/SELINUX=permissive/g' /etc/selinux/config
-setenforce Permissive
-
 # Add usr-local-bin path for everyone
 cat <<MYPATH >/etc/profile.d/usr-local-bin.sh
 #!/bin/bash

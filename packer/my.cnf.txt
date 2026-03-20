@@ -1,15 +1,22 @@
+#
 # The section 'client' is used by any application which links against
 # the 'libmysqlclient' library, which is most tools and languages.
+#
 [client]
 socket = /var/lib/mysql/mysql.sock
 ssl_ca = /etc/ssl/mysql/ca.pem
 ssl_cert = /etc/ssl/mysql/client-cert.pem
 ssl_key = /etc/ssl/mysql/client-key.pem
 
+#
 # The 'mysql' section is used only by the 'mysql' CLI
+#
 [mysql]
 
-# The 'mysqld' section is specific to parameters which modify the behavior of the mysql server-daemon itself
+#
+# The 'mysqld' section is specific to parameters which modify the
+# behavior of the mysql server-daemon itself
+#
 [mysqld]
 user = mysql
 datadir = /var/lib/mysql
@@ -23,7 +30,6 @@ innodb_buffer_pool_size = 3G
 server_id = 5
 
 log-bin = mysqld-bin
-binlog_format = ROW
 sync_binlog = 0
 log_replica_updates
 
