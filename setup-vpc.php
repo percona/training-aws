@@ -20,10 +20,6 @@ $subnet_map = array(
 
 /* This is the EC2 API Client object */
 $ec2 = new Ec2Client([
-	'credentials' => [
-		'key' => $aws_key,
-		'secret' => $aws_secret,
-	],
 	'region' => $config['Region'] ?? $options['region'],
 	'version'=> 'latest',
 ]);

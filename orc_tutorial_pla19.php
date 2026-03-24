@@ -18,17 +18,13 @@ use Aws\DynamoDb\Marshaler;
 use Aws\DynamoDb\DynamoDbClient;
 use Aws\DynamoDb\Exception\DynamoDbException;
 use Aws\Ec2\Ec2Client;
-use Aws\Credentials\CredentialProvider;
 
-$provider = CredentialProvider::instanceProfile();
 $dynamo = new DynamoDbClient([
-        'credentials' => $provider,
         'region'  => 'us-east-1',
         'version' => 'latest'
 ]);
 
 $ec2 = new Ec2Client([
-	'credentials' => $provider,
 	'region' => $options['region'],
 	'version'=> 'latest'
 ]);
