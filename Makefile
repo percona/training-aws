@@ -1,3 +1,5 @@
+region ?= us-west-2
+
 .PHONY: help setup teardown summary list-amis
 
 help:
@@ -39,7 +41,7 @@ help:
 
 # Example: make list-amis region=eu-west-1
 list-amis:
-	@./start-instances.php -a LISTAMIS -r "$${region:-us-west-2}"
+	@./start-instances.php -a LISTAMIS -r "$(region)"
 
 # Example: make setup class=mysql-dev client=TREK teams=14 region=eu-west-1
 setup:
@@ -56,8 +58,8 @@ teardown:
 		echo "Usage: make teardown client=<Suffix> [region=<AWS Region>]"; \
 		exit 1; \
 	fi
-	./start-instances.php -a DROP -r "$${region:-us-west-2}" -p "$(client)" -i dummy
-	./setup-vpc.php -a DROP -r "$${region:-us-west-2}" -p "$(client)"
+	./start-instances.php -a DROP -r "$(region)" -p "$(client)" -i dummy
+	./setup-vpc.php -a DROP -r "$(region)" -p "$(client)"
 
 # Example: make summary client=TREK
 summary:
