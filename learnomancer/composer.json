@@ -1,0 +1,32 @@
+{
+    "name": "percona/learnomancer",
+    "description": "A collection of CLI tools to manage training instances in AWS",
+    "type": "project",
+    "bin": [
+    	"bin/learnomancer"
+    ],
+    "require": {
+        "cakephp/console": "^5.3",
+        "aws/aws-sdk-php": "^3.376"
+    },
+    "require-dev": {
+    	"phpstan/phpstan": "^2.1",
+    	"cakephp/cakephp-codesniffer": "^5.3"
+    },
+    "autoload": {
+        "psr-4": {
+            "Learnomancer\\": "src/"
+        }
+    },
+    "authors": [
+        {
+            "name": "Matthew Boehm",
+            "email": "matthew.boehm@percona.com"
+        }
+    ],
+    "config": {
+        "allow-plugins": {
+            "dealerdirect/phpcodesniffer-composer-installer": true
+        }
+    }
+}

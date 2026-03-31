@@ -1,0 +1,13 @@
+#!/usr/bin/env php
+<?php
+declare(strict_types=1);
+
+// Load dependencies
+require dirname(__DIR__) . '/vendor/autoload.php';
+
+use Learnomancer\Application;
+use Cake\Console\CommandRunner;
+
+// Build the runner with an application and root executable name.
+$runner = new CommandRunner(new Application(), 'learnomancer');
+exit($runner->run($argv));
