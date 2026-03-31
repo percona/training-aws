@@ -1029,6 +1029,7 @@ function tagEntity($entity, $key, $value)
 function addName($entity, $value)
 {
 	tagEntity($entity, 'Name', $value);
+	tagEntity($entity, 'TrainingEndDate', date('Y-m-d', strtotime('+7 days')));
 }
 
 function addIngressRule($port, $cidr)

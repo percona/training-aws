@@ -164,6 +164,7 @@ function addNewCluster()
 		foreach($instanceIds as $i => $instanceId)
 		{
 			tagEntity($instanceId, 'Name', sprintf("PLA19-ORC-T%d-%s", $teamId, $types[$i]));
+			tagEntity($instanceId, 'TrainingEndDate', date('Y-m-d', strtotime('+7 days')));
 		}
 	}
 	catch(Exception $e)

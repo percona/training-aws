@@ -515,6 +515,7 @@ function addNewInstance()
 					$tag = sprintf("Percona-Training-%s-%s-T%d", $options['suffix'], $machine, "0");
 
 				tagEntity($instanceId, 'Name', $tag);
+				tagEntity($instanceId, 'TrainingEndDate', date('Y-m-d', strtotime('+7 days')));
 			}
 		}
 
