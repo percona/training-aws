@@ -30,6 +30,11 @@ final class Application implements ConsoleApplicationInterface
     {
         $commands->add('list-instances', Command\ListInstancesCommand::class);
         $commands->add('ansible-config', Command\AnsibleConfigCommand::class);
+        $commands->add('drop-instances', Command\DropInstancesCommand::class);
+        $commands->add('list-amis', Command\ListAmisCommand::class);
+		$commands->add('sync-dynamo', Command\SyncDynamoCommand::class);
+		$commands->add('create-instances', Command\CreateInstancesCommand::class);
+
         return $commands;
     }
 }

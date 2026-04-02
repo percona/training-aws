@@ -29,26 +29,26 @@ class ListInstancesCommand extends BaseCommand
 
     public function execute(Arguments $args, ConsoleIo $io): ?int
     {
-        $slug = $args->getArgument('slug');
-        $region = $args->getArgument('region');
+        // Validate options
+        $slug = $args->getArgument('slug') ?: $io->abort("Missing slug parameter");
+        $region = $args->getArgument('region') ?: $io->abort("Missing region parameter");
 
 		$ec2 = new AwsClient($region);
-		$instances = $ec2->getInstancesBySlug($slug);
+		$reservations = $ec2->getInstancesBySlug($slug);
 
-		if (empty($instances))
+		if (empty($reservations))
         {
-            print("! No instances found for '{$slug}'\n");
+            $io->warning("! No instances found for '{$slug}' in '{$region}'\n");
             return static::CODE_SUCCESS;
         }
 
 		$frontLength = strlen("Percona-Training-{$slug}-");
 
-        foreach ($instances as $instance)
+        foreach ($reservations as $instance)
         {
             $fullName = $instance['Hostname'];
             $typeTeamName = substr($fullName, $frontLength);
-            printf("%-15s %-30s %-10s\n",
-                $instance['PublicIpAddress'], $fullName, $typeTeamName);
+            $io->out(sprintf("%-15s %-30s %-10s", $instance['PublicIpAddress'], $fullName, $typeTeamName));
         }
 
         return static::CODE_SUCCESS;

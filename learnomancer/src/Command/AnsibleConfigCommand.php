@@ -35,20 +35,22 @@ class AnsibleConfigCommand extends BaseCommand
 
     public function execute(Arguments $args, ConsoleIo $io): ?int
     {
-        $slug = $args->getArgument('slug');
-        $region = $args->getArgument('region');
+        // Validate options
+        $slug = $args->getArgument('slug') ?: $io->abort("Missing slug parameter");
+        $region = $args->getArgument('region') ?: $io->abort("Missing region parameter");
 
 		$ec2 = new AwsClient($region);
 		$reservations = $ec2->getInstancesBySlug($slug);
 
 		if (empty($reservations))
         {
-            print("! No instances found for '{$slug}'\n");
+            $io->warning("! No instances found for '{$slug}' in '{$region}'\n");
             return static::CODE_SUCCESS;
         }
 
 		$frontLength = strlen("Percona-Training-{$slug}-");
 
+		// @var array{machinetype: array<string, array<string>>, team: array<string, array<string>>, all: array<string>, privateip: array<string, string>, publicip: array<string, string>} $instances
 		$instances = array();
 		foreach ($reservations as $instance)
 		{
@@ -70,29 +72,58 @@ class AnsibleConfigCommand extends BaseCommand
 		// Build contents
 
 		$contents = "[all]\n";
+
+		// The 'all' group
+		if (!isset($instances['all'])) {
+			$io->abort('Empty instances list');
+		}
+
 		foreach ($instances['all'] as $machine)
 		{
 			$dash = strpos($machine, "-");
+			if ($dash === false)
+			{
+				$io->abort("Failed to parse machine name '{$machine}'");
+			}
+
 			$team = substr($machine, $dash);
-			$mach = substr($machine, 0, $dash);
+			$machineType = substr($machine, 0, $dash);
+
+			if (!isset($instances['privateip']) || !isset($instances['publicip']))
+			{
+				$io->abort("Failed to find private or public ip for instance");
+			}
 
 			$contents .= $machine . "\tprivateIp=" . $instances['privateip'][$machine]
 				. "\tansible_ssh_host=" . $instances['publicip'][$machine];
 
-			if ($mach == "mysql2" || $mach == "mysql3")
+			// Source-Replica / PXC / GR tutorials
+			if ($machineType == "mysql2" || $machineType == "mysql3")
+			{
 				$contents .= "\tmysql_master_host=mysql1" . $team;
+			}
 
-			if ($mach == "node2" || $mach == "node3" || $mach == "node4")
+			// Kubernetes tutorials
+			if ($machineType == "node2" || $machineType == "node3" || $machineType == "node4")
+			{
 				$contents .= "\tkube_master=node1" . $team;
+			}
 
 			$contents .= "\n";
 		}
+
+
 		$contents .= "\n";
 		$contents .= "[all:vars]\n";
 		$contents .= "ansible_ssh_user=rocky\n";
 		$contents .= "ansible_become=true\n";
 		$contents .= "ansible_ssh_private_key_file=Percona-Training.key\n";
 		$contents .= "\n";
+
+		// Machine groups
+		if (!isset($instances['machinetype'])) {
+			$io->abort('Empty machine types list');
+		}
 
 		foreach ($instances['machinetype'] as $key => $machines)
 		{
@@ -108,6 +139,11 @@ class AnsibleConfigCommand extends BaseCommand
 			$contents .= "\n";
 		}
 
+		// Team groups
+		if (!isset($instances['team'])) {
+			$io->abort('Empty teams list');
+		}
+
 		foreach ($instances['team'] as $key => $machines)
 		{
 			$contents .= "[" . $key . "]\n";
@@ -119,15 +155,17 @@ class AnsibleConfigCommand extends BaseCommand
 
 			$contents .= "[" . $key . ":vars]\n";
 			$contents .= "team=" . $key . "\n";
-			$contents .= "\n";
 		}
 
 		// Output
-		if ($args->getOption('output')) {
+		if ($args->getOption('output'))
+		{
 			$filename = "ansible_{$slug}";
-			file_put_contents($filename, $contents);
-		} else {
-			print($contents);
+			$io->createFile($filename, $contents, forceOverwrite: true);
+		}
+		else
+		{
+			$io->out($contents);
 		}
 
         return static::CODE_SUCCESS;
