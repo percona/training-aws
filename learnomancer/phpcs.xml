@@ -1,0 +1,52 @@
+<?xml version="1.0"?>
+<ruleset name="Learnomancer">
+	<description>PHP code style standards for Learnomancer</description>
+
+	<!-- Files, and paths to process //-->
+	<file>src/</file>
+
+	<config name="installed_paths" value="vendor/cakephp/cakephp-codesniffer,vendor/slevomat/coding-standard"/>
+
+	<arg name="tab-width" value="4"/>
+
+	<!-- Import PSR-12 as the basis; PSR12 replaces/includes PSR2 -->
+	<rule ref="PSR12">
+		<exclude name="PSR2.ControlStructures.SwitchDeclaration.BodyOnNextLineCASE" />
+
+		<!-- Allow tabs as indent //-->
+		<exclude name="Generic.WhiteSpace.DisallowTabIndent" />
+	</rule>
+
+	<rule ref="Generic">
+		<exclude name="Generic.Arrays.DisallowShortArraySyntax.Found" />
+		<exclude name="Generic.Classes.OpeningBraceSameLine.BraceOnNewLine" />
+		<exclude name="Generic.CodeAnalysis.AssignmentInCondition" />
+		<exclude name="Generic.Commenting.DocComment.MissingShort" />
+		<exclude name="Generic.Commenting.DocComment.NonParamGroup" />
+		<exclude name="Generic.Files.EndFileNoNewline.Found" />
+		<exclude name="Generic.Files.LineLength" />
+		<exclude name="Generic.Files.LowercasedFilename.NotFound" />
+		<exclude name="Generic.Functions.OpeningFunctionBraceKernighanRitchie.BraceOnNewLine" />
+		<exclude name="Generic.Metrics.CyclomaticComplexity.TooHigh" />
+		<exclude name="Generic.PHP.ClosingPHPTag.NotFound" />
+		<exclude name="Generic.PHP.UpperCaseConstant.Found" />
+	</rule>
+
+	<rule ref="CakePHP">
+		<exclude name="CakePHP.Commenting.FunctionComment.TagAlignment" />
+
+		<!-- https://github.com/cakephp/cakephp-codesniffer/issues/423 //-->
+		<exclude name="CakePHP.WhiteSpace.TabAndSpace.DoubleSpace" />
+
+		<!-- Allaman Style //-->
+		<exclude name="Squiz.ControlStructures.ControlSignature.SpaceAfterCloseParenthesis" />
+		<exclude name="SlevomatCodingStandard.ControlStructures.AssignmentInCondition" />
+	</rule>
+
+	<rule ref="Generic.Formatting.SpaceAfterNot">
+	  <properties>
+		  <property name="spacing" value="0" />
+	  </properties>
+	</rule>
+
+</ruleset>

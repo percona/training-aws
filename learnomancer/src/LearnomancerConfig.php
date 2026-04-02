@@ -29,12 +29,20 @@ final class LearnomancerConfig
 	// Security Group Info
 	private string $securityGroupId;
 
+	/**
+	 * Create a config object
+	 */
 	public function __construct(string $slug, string $region)
 	{
-		$this->slug = $slug;
+		$this->slug   = $slug;
 		$this->region = $region;
 	}
 
+	/**
+	 * Load the config file, and parse the contents
+	 *
+	 * @throws \Learnomancer\LearnomancerException
+	 */
 	public function loadConfig(): void
 	{
 		// Get config file name
@@ -65,21 +73,33 @@ final class LearnomancerConfig
 		}
 	}
 
+	/**
+	 * Returns the subnet id
+	 */
 	public function getSubnetId(): string
 	{
 		return $this->subnetId;
 	}
 
-	public static function getConfigFile(string $slug, string $region): string
+	/**
+	 * Construct the config filename
+	 */
+	private static function getConfigFile(string $slug, string $region): string
 	{
 		return strtolower(".config-Percona-Training-{$slug}-{$region}.cnf");
 	}
 
+	/**
+	 * Encode and persist the config to disk
+	 */
 	public function saveConfig(): bool
 	{
 		return file_put_contents($this->configFile, json_encode($this)) !== false;
 	}
 
+	/**
+	 * Magic function to set private members
+	 */
 	public function __set(string $property, string $value): void
 	{
 		if (property_exists($this, $property))

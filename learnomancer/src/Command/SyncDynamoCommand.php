@@ -7,41 +7,48 @@ use Cake\Console\Arguments;
 use Cake\Console\BaseCommand;
 use Cake\Console\ConsoleIo;
 use Cake\Console\ConsoleOptionParser;
+use Exception;
 use Learnomancer\AwsClient;
 use Learnomancer\DynamoDbClient;
 
 class SyncDynamoCommand extends BaseCommand
 {
-    protected function buildOptionParser(ConsoleOptionParser $parser): ConsoleOptionParser
-    {
-        $parser->addArguments([
+	/**
+	 * Configures arguments, and options for the command
+	 */
+	protected function buildOptionParser(ConsoleOptionParser $parser): ConsoleOptionParser
+	{
+		$parser->addArguments([
 			'slug' => [
 				'required' => true,
 				'help' => 'The slug/suffix for the class',
 			],
 			'region' => [
 				'required' => true,
-				'help' => 'The region to list from'
-			]
+				'help' => 'The region to list from',
+			],
 		]);
 
-        return $parser;
-    }
+		return $parser;
+	}
 
+	/**
+	 * Executes the command
+	 */
 	public function execute(Arguments $args, ConsoleIo $io): ?int
 	{
-		try
-		{
+		try {
 			// Validate options
-    	    $slug = $args->getArgument('slug') ?: $io->abort("Missing slug parameter");
-	        $region = $args->getArgument('region') ?: $io->abort("Missing region parameter");
+			$slug   = $args->getArgument('slug') ?: $io->abort('Missing slug parameter');
+			$region = $args->getArgument('region') ?: $io->abort('Missing region parameter');
 
-			$ec2 = new AwsClient($region);
+			$ec2          = new AwsClient($region);
 			$reservations = $ec2->getInstancesBySlug($slug);
 
 			if (empty($reservations))
 			{
 				$io->warning("! No instances found for '{$slug}' in '{$region}'");
+
 				return static::CODE_SUCCESS;
 			}
 
@@ -52,13 +59,13 @@ class SyncDynamoCommand extends BaseCommand
 
 			foreach ($reservations as $instance)
 			{
-				$teamName = substr($instance["Hostname"], $frontLength);
-				if($teamName === "PMM")
+				$teamName = substr($instance['Hostname'], $frontLength);
+				if ($teamName === 'PMM')
 				{
 					continue;
 				}
 
-				list($machineType, $teamId) = explode("-", $teamName);
+				[$machineType, $teamId] = explode('-', $teamName);
 
 				// remove the 'T'
 				$teamId = substr($teamId, 1);
@@ -67,26 +74,23 @@ class SyncDynamoCommand extends BaseCommand
 					continue;
 				}
 
-				$instanceInfo = array(
-					"teamId" => $teamId,
-					"machineType" => $machineType,
-					"PublicIp" => $instance['PublicIpAddress'],
-					"PrivateIp" => $instance['PrivateIpAddress'],
-				);
+				$instanceInfo = [
+					'teamId' => $teamId,
+					'machineType' => $machineType,
+					'PublicIp' => $instance['PublicIpAddress'],
+					'PrivateIp' => $instance['PrivateIpAddress'],
+				];
 
 				if (DynamoDbClient::saveInstanceInfoToDynamo($slug, $teamId, $instanceInfo))
 				{
 					$io->out("-- Added {$instanceInfo['machineType']} to team {$teamId}");
-				}
-				else
-				{
+				} else {
 					$io->error("! Unable to add {$instanceInfo['machineType']} to team {$teamId}");
 				}
 			}
-		}
-		catch(\Exception $e)
+		} catch (Exception $e)
 		{
-			$io->error("** UNABLE TO SAVE TO DYNAMO **");
+			$io->error('** UNABLE TO SAVE TO DYNAMO **');
 			$io->error("** Unknown Error: {$e->getMessage()} **");
 
 			return static::CODE_ERROR;

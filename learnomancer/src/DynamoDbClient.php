@@ -6,13 +6,14 @@ namespace Learnomancer;
 use Aws\DynamoDb;
 use Aws\DynamoDb\Exception\DynamoDbException;
 use Aws\DynamoDb\Marshaler;
-use Aws\Result;
-
 
 final class DynamoDbClient
 {
 	private static ?DynamoDb\DynamoDbClient $client = null;
 
+	/**
+	 * Singleton-style function to get a DynamoDb API client
+	 */
 	public static function getClient(): DynamoDb\DynamoDbClient
 	{
 		if (self::$client == null)
@@ -22,6 +23,7 @@ final class DynamoDbClient
 				'version' => 'latest',
 			]);
 		}
+
 		return self::$client;
 	}
 
@@ -34,27 +36,26 @@ final class DynamoDbClient
 		$tagTeams = array_unique($tagTeams);
 
 		// loop and delete
-		foreach($tagTeams as $t)
+		foreach ($tagTeams as $t)
 		{
-			list($tag, $tid) = explode("-", $t);
+			[$tag, $tid] = explode('-', $t);
 
 			$params = [
-				"TableName" => "percona_training_servers",
-				"Key" => array(
-					"teamTag" => array("S" => $tag),
-					"teamId" =>  array("N" => $tid),
-				)
+				'TableName' => 'percona_training_servers',
+				'Key' => [
+					'teamTag' => ['S' => $tag],
+					'teamId'  => ['N' => $tid],
+				],
 			];
 
-			try
-			{
+			try {
 				self::getClient()->deleteItem($params);
-				print("-- Deleted {$tag}-T{$tid}\n");
-			}
-			catch (DynamoDbException $e)
+				print "-- Deleted {$tag}-T{$tid}\n";
+			} catch (DynamoDbException $e)
 			{
-				print("-- !! Unable to delete {$tag}-T{$tid}:\n");
-				print($e->getMessage());
+				print "-- !! Unable to delete {$tag}-T{$tid}:\n";
+				print $e->getMessage();
+
 				return;
 			}
 		}
@@ -68,20 +69,23 @@ final class DynamoDbClient
 	public static function saveInstanceInfoToDynamo(string $slug, string $teamId, array $instanceInfo): bool
 	{
 		$marshaler = new Marshaler();
-		$json = sprintf('{":m": { "publicIp": "%s", "privateIp": "%s" } }',
-			$instanceInfo['PublicIp'], $instanceInfo['PrivateIp']);
+		$json      = sprintf(
+			'{":m": { "publicIp": "%s", "privateIp": "%s" } }',
+			$instanceInfo['PublicIp'],
+			$instanceInfo['PrivateIp'],
+		);
 
 		$row = $marshaler->marshalJson($json);
 
 		$teamTag = strtolower($slug);
 
 		$params = [
-			'TableName' => "percona_training_servers",
-			'Key' => array(
-				'teamTag' => array('S' => $teamTag),
-				'teamId' =>  array('N' => "$teamId")
-			),
-			'UpdateExpression' => sprintf("SET %s = :m", $instanceInfo['machineType']),
+			'TableName' => 'percona_training_servers',
+			'Key' => [
+				'teamTag' => ['S' => $teamTag],
+				'teamId'  => ['N' => "$teamId"],
+			],
+			'UpdateExpression' => sprintf('SET %s = :m', $instanceInfo['machineType']),
 			'ExpressionAttributeValues' => $row,
 		];
 

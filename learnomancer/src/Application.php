@@ -3,38 +3,37 @@ declare(strict_types=1);
 
 namespace Learnomancer;
 
-use Cake\Core\ConsoleApplicationInterface;
 use Cake\Console\CommandCollection;
-use Learnomancer\Command;
+use Cake\Core\ConsoleApplicationInterface;
 
 final class Application implements ConsoleApplicationInterface
 {
-    /**
-     * Load all the application configuration and bootstrap logic.
-     *
-     * @return void
-     */
-    public function bootstrap(): void
-    {
-        // Load configuration here. This is the first
-        // method Cake\Console\CommandRunner will call on your application.
-    }
+	/**
+	 * Load all the application configuration and bootstrap logic.
+	 *
+	 * @return void
+	 */
+	public function bootstrap(): void
+	{
+		// Load configuration here. This is the first
+		// method Cake\Console\CommandRunner will call on your application.
+	}
 
 	/**
-     * Define the console commands for an application.
-     *
-     * @param \Cake\Console\CommandCollection $commands The CommandCollection to add commands into.
-     * @return \Cake\Console\CommandCollection The updated collection.
-     */
-    public function console(CommandCollection $commands): CommandCollection
-    {
-        $commands->add('list-instances', Command\ListInstancesCommand::class);
-        $commands->add('ansible-config', Command\AnsibleConfigCommand::class);
-        $commands->add('drop-instances', Command\DropInstancesCommand::class);
-        $commands->add('list-amis', Command\ListAmisCommand::class);
+	 * Define the console commands for an application.
+	 *
+	 * @param  \Cake\Console\CommandCollection $commands The CommandCollection to add commands into.
+	 * @return \Cake\Console\CommandCollection The updated collection.
+	 */
+	public function console(CommandCollection $commands): CommandCollection
+	{
+		$commands->add('list-instances', Command\ListInstancesCommand::class);
+		$commands->add('ansible-config', Command\AnsibleConfigCommand::class);
+		$commands->add('drop-instances', Command\DropInstancesCommand::class);
+		$commands->add('list-amis', Command\ListAmisCommand::class);
 		$commands->add('sync-dynamo', Command\SyncDynamoCommand::class);
 		$commands->add('create-instances', Command\CreateInstancesCommand::class);
 
-        return $commands;
-    }
+		return $commands;
+	}
 }
