@@ -8,8 +8,7 @@ use Cake\Console\BaseCommand;
 use Cake\Console\ConsoleIo;
 use Cake\Console\ConsoleOptionParser;
 use Exception;
-use Learnomancer\AwsClient;
-use Learnomancer\DynamoDbClient;
+use Learnomancer;
 
 class SyncDynamoCommand extends BaseCommand
 {
@@ -37,12 +36,13 @@ class SyncDynamoCommand extends BaseCommand
 	 */
 	public function execute(Arguments $args, ConsoleIo $io): ?int
 	{
-		try {
+		try
+		{
 			// Validate options
 			$slug   = $args->getArgument('slug') ?: $io->abort('Missing slug parameter');
 			$region = $args->getArgument('region') ?: $io->abort('Missing region parameter');
 
-			$ec2          = new AwsClient($region);
+			$ec2          = new Learnomancer\AwsClient($region);
 			$reservations = $ec2->getInstancesBySlug($slug);
 
 			if (empty($reservations))
@@ -81,14 +81,17 @@ class SyncDynamoCommand extends BaseCommand
 					'PrivateIp' => $instance['PrivateIpAddress'],
 				];
 
-				if (DynamoDbClient::saveInstanceInfoToDynamo($slug, $teamId, $instanceInfo))
+				if (Learnomancer\DynamoDbClient::saveInstanceInfoToDynamo($slug, $teamId, $instanceInfo))
 				{
 					$io->out("-- Added {$instanceInfo['machineType']} to team {$teamId}");
-				} else {
+				}
+				else
+				{
 					$io->error("! Unable to add {$instanceInfo['machineType']} to team {$teamId}");
 				}
 			}
-		} catch (Exception $e)
+		}
+		catch (Exception $e)
 		{
 			$io->error('** UNABLE TO SAVE TO DYNAMO **');
 			$io->error("** Unknown Error: {$e->getMessage()} **");

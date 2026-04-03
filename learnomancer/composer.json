@@ -28,7 +28,7 @@
         "cs-fix": "phpcbf --colors -p",
         "stan": "phpstan analyse",
         "test": "phpunit --colors=always",
-        "lint": "parallel-lint --exclude .git --exclude vendor"
+        "lint": "parallel-lint --exclude .git --exclude vendor ."
     },
     "authors": [
         {

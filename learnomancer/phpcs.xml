@@ -39,7 +39,9 @@
 		<exclude name="CakePHP.WhiteSpace.TabAndSpace.DoubleSpace" />
 
 		<!-- Allaman Style //-->
+		<exclude name="Squiz.ControlStructures.ControlSignature.SpaceAfterCloseBrace" />
 		<exclude name="Squiz.ControlStructures.ControlSignature.SpaceAfterCloseParenthesis" />
+		<exclude name="Squiz.ControlStructures.ControlSignature.SpaceAfterKeyword" />
 		<exclude name="SlevomatCodingStandard.ControlStructures.AssignmentInCondition" />
 	</rule>
 

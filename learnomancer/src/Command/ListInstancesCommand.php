@@ -7,7 +7,7 @@ use Cake\Console\Arguments;
 use Cake\Console\BaseCommand;
 use Cake\Console\ConsoleIo;
 use Cake\Console\ConsoleOptionParser;
-use Learnomancer\AwsClient;
+use Learnomancer;
 
 class ListInstancesCommand extends BaseCommand
 {
@@ -39,7 +39,7 @@ class ListInstancesCommand extends BaseCommand
 		$slug   = $args->getArgument('slug') ?: $io->abort('Missing slug parameter');
 		$region = $args->getArgument('region') ?: $io->abort('Missing region parameter');
 
-		$ec2          = new AwsClient($region);
+		$ec2          = new Learnomancer\AwsClient($region);
 		$reservations = $ec2->getInstancesBySlug($slug);
 
 		if (empty($reservations))

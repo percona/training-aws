@@ -6,28 +6,27 @@ namespace Learnomancer;
 final class LearnomancerConfig
 {
 	// Basic info
-	private string $configFile;
-	private string $region;
-	private string $slug;
-	private string $keypair;
+	public string $region  = '';
+	public string $slug    = '';
+	public string $keypair = '';
 
 	// VPC Info
-	private string $vpcId;
-	private string $vpcCidrBlock;
+	public string $vpcId        = '';
+	public string $vpcCidrBlock = '';
 
 	// Subnet Info
-	private string $subnetId;
-	private string $subnetCidrBlock;
-	private string $subnetAz;
+	public string $subnetId        = '';
+	public string $subnetCidrBlock = '';
+	public string $subnetAz        = '';
 
 	// Gateway Info
-	private string $gatewayId;
+	public string $gatewayId = '';
 
 	// Routing Info
-	private string $routeTableId;
+	public string $routeTableId = '';
 
 	// Security Group Info
-	private string $securityGroupId;
+	public string $securityGroupId = '';
 
 	/**
 	 * Create a config object
@@ -43,7 +42,7 @@ final class LearnomancerConfig
 	 *
 	 * @throws \Learnomancer\LearnomancerException
 	 */
-	public function loadConfig(): void
+	public function loadConfig(bool $missingOk = false): void
 	{
 		// Get config file name
 		$configFile = self::getConfigFile($this->slug, $this->region);
@@ -51,6 +50,12 @@ final class LearnomancerConfig
 		// Return empty LearnomancerConfig if config file does not exist
 		if (!file_exists($configFile))
 		{
+			// When adding a new VPC, or rebuilding a config, there is nothing to parse
+			if ($missingOk)
+			{
+				return;
+			}
+
 			throw new LearnomancerException("Missing config file for '{$this->slug}'. Have you created the VPC?");
 		}
 
@@ -60,7 +65,7 @@ final class LearnomancerConfig
 			throw new LearnomancerException("Failed to read config file '{$configFile}' contents.");
 		}
 
-		$parsed = json_decode($contents);
+		$parsed = json_decode($contents, associative: true);
 		if (!is_array($parsed))
 		{
 			throw new LearnomancerException("Failed to parse config file '{$configFile}' contents.");
@@ -71,14 +76,6 @@ final class LearnomancerConfig
 		{
 			$this->$key = $val;
 		}
-	}
-
-	/**
-	 * Returns the subnet id
-	 */
-	public function getSubnetId(): string
-	{
-		return $this->subnetId;
 	}
 
 	/**
@@ -94,7 +91,9 @@ final class LearnomancerConfig
 	 */
 	public function saveConfig(): bool
 	{
-		return file_put_contents($this->configFile, json_encode($this)) !== false;
+		$configFile = self::getConfigFile($this->slug, $this->region);
+
+		return file_put_contents($configFile, json_encode($this)) !== false;
 	}
 
 	/**

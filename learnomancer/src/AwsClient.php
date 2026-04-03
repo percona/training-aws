@@ -204,6 +204,96 @@ final class AwsClient
 	}
 
 	/**
+	 * Create a VPC with CIDR range, and name
+	 */
+	public function createVpc(string $cidrMask, string $name): string
+	{
+		$res = $this->client->createVpc([
+			'CidrBlock' => $cidrMask,
+		]);
+
+		/**
+		 * @var array{VpcId: string} $vpc
+		 */
+		$vpc   = $res->get('Vpc');
+		$vpcId = $vpc['VpcId'];
+
+		// Tag the VPC
+		$this->tagEntity($vpcId, 'Name', $name);
+
+		return $vpcId;
+	}
+
+	/**
+	 * Delete VPC
+	 */
+	public function deleteVpc(string $vpcId): void
+	{
+		$this->client->deleteVpc([
+			'VpcId' => $vpcId,
+		]);
+	}
+
+	/**
+	 * Search for VPC
+	 *
+	 * @return array{}|array{VpcId: string, Name: string}
+	 */
+	private function searchVpc(string $filterName, string $filterValue): array
+	{
+		// Search
+		$res = $this->client->describeVpcs([
+			'Filters' => [
+				[
+					'Name' => $filterName,
+					'Values' => [$filterValue],
+				],
+			],
+		]);
+
+		/**
+		 * The search path should return the VpcId, and the Name of the VPC, if found
+		 *
+		 * @var array{}|array<array{VpcId: string, Name: string}> $vpcs
+		 */
+		$vpcs = $res->search("Vpcs[].{
+			VpcId: VpcId,
+			Name: Tags[?Key=='Name'].Value | [0]
+		}");
+
+		$numVpcs = count($vpcs);
+		if ($numVpcs > 1)
+		{
+			throw new LearnomancerException("More than 1 VPC returned for {$filterValue}");
+		}
+
+		// Return first element if only 1
+		if ($numVpcs === 1)
+		{
+			return $vpcs[0];
+		}
+
+		// Return empty
+		return $vpcs;
+	}
+
+	/**
+	 * @return array{}|array{VpcId: string, Name: string}
+	 */
+	public function getVpcById(string $vpcId): array
+	{
+		return $this->searchVpc('vpc-id', $vpcId);
+	}
+
+	/**
+	 * @return array{}|array{VpcId: string, Name: string}
+	 */
+	public function getVpcByName(string $vpcName): array
+	{
+		return $this->searchVpc('tag:Name', $vpcName);
+	}
+
+	/**
 	 * Apply tags to the entity
 	 */
 	public function tagEntity(string $entity, string $key, string $value): void

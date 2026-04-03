@@ -8,8 +8,7 @@ use Cake\Console\BaseCommand;
 use Cake\Console\ConsoleIo;
 use Cake\Console\ConsoleOptionParser;
 use Exception;
-use Learnomancer\AwsClient;
-use Learnomancer\DynamoDbClient;
+use Learnomancer;
 
 class DropInstancesCommand extends BaseCommand
 {
@@ -41,7 +40,7 @@ class DropInstancesCommand extends BaseCommand
 		$slug   = $args->getArgument('slug') ?: $io->abort('Missing slug parameter');
 		$region = $args->getArgument('region') ?: $io->abort('Missing region parameter');
 
-		$ec2          = new AwsClient($region);
+		$ec2          = new Learnomancer\AwsClient($region);
 		$reservations = $ec2->getInstancesBySlug($slug);
 
 		$instanceIds   = [];
@@ -85,8 +84,9 @@ class DropInstancesCommand extends BaseCommand
 			$io->out('- Instances have been terminated. They may still be visable for up to 1 hour in the console/API.');
 
 			$io->out('- Removing instances from DynamoDB...');
-			DynamoDbClient::deleteFromDynamo($instanceNames);
-		} catch (Exception $e)
+			Learnomancer\DynamoDbClient::deleteFromDynamo($instanceNames);
+		}
+		catch (Exception $e)
 		{
 			$io->error("** Unknown Error: {$e->getMessage()} **");
 

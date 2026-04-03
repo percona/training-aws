@@ -106,10 +106,12 @@ class CreateInstancesCommand extends BaseCommand
 		$this->validateOptionAmi($ami, $region, $io);
 
 		// Load config
-		try {
+		try
+		{
 			$config = new Learnomancer\LearnomancerConfig($slug, $region);
 			$config->loadConfig();
-		} catch (Learnomancer\LearnomancerException | Exception $e)
+		}
+		catch (Learnomancer\LearnomancerException | Exception $e)
 		{
 			$io->error($e->getMessage());
 
@@ -141,13 +143,15 @@ class CreateInstancesCommand extends BaseCommand
 					break;
 			}
 
-			try {
+			try
+			{
 				$io->out("-- Launching {$count} instances of type '{$machine}'");
 
 				// @var array<string> $ids
-				$ids         = $ec2->createInstances($count, $instanceType, $config->getSubnetId(), $ami);
+				$ids         = $ec2->createInstances($count, $instanceType, $config->subnetId, $ami);
 				$instanceIds = array_merge($instanceIds, $ids);
-			} catch (Exception $e)
+			}
+			catch (Exception $e)
 			{
 				$io->abort("** Unable to create instances: {$e->getMessage()} **");
 			}

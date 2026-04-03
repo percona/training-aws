@@ -7,7 +7,7 @@ use Cake\Console\Arguments;
 use Cake\Console\BaseCommand;
 use Cake\Console\ConsoleIo;
 use Cake\Console\ConsoleOptionParser;
-use Learnomancer\AwsClient;
+use Learnomancer;
 
 class ListAmisCommand extends BaseCommand
 {
@@ -34,7 +34,7 @@ class ListAmisCommand extends BaseCommand
 		// Validate options
 		$region = $args->getArgument('region') ?: $io->abort('Missing region parameter');
 
-		$ec2  = new AwsClient($region);
+		$ec2  = new Learnomancer\AwsClient($region);
 		$amis = $ec2->listAmis();
 
 		if (empty($amis))

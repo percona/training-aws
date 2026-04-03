@@ -4,7 +4,20 @@ declare(strict_types=1);
 namespace Learnomancer;
 
 use Cake\Console\CommandCollection;
+use Cake\Core\Configure;
+use Cake\Core\Configure\Engine\PhpConfig;
 use Cake\Core\ConsoleApplicationInterface;
+use Exception;
+
+/*
+ * The full path to the directory which holds "src", WITHOUT a trailing DS.
+ */
+define('ROOT', dirname(__DIR__));
+
+/*
+ * Path to the config directory.
+ */
+define('CONFIG', ROOT . DS . 'config' . DS);
 
 final class Application implements ConsoleApplicationInterface
 {
@@ -17,6 +30,15 @@ final class Application implements ConsoleApplicationInterface
 	{
 		// Load configuration here. This is the first
 		// method Cake\Console\CommandRunner will call on your application.
+		try
+		{
+			Configure::config('default', new PhpConfig());
+			Configure::load('learnomancer', 'default', false);
+		}
+		catch (Exception $e)
+		{
+			exit($e->getMessage() . "\n");
+		}
 	}
 
 	/**
@@ -33,6 +55,8 @@ final class Application implements ConsoleApplicationInterface
 		$commands->add('list-amis', Command\ListAmisCommand::class);
 		$commands->add('sync-dynamo', Command\SyncDynamoCommand::class);
 		$commands->add('create-instances', Command\CreateInstancesCommand::class);
+
+		$commands->add('create-vpc', Command\CreateVpcCommand::class);
 
 		return $commands;
 	}
