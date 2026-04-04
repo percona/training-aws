@@ -54,11 +54,12 @@ class CreateVpcCommand extends BaseCommand
 			return static::CODE_ERROR;
 		}
 
-		// Client
-		$ec2 = new Learnomancer\AwsClient($region);
-
 		try
 		{
+			// Client
+			$ec2 = new Learnomancer\AwsClient($region);
+			$ec2->loadUser();
+
 			$vpcName = "Percona-Training-{$slug}-VPC";
 
 			$io->out("- Checking for VPC '{$vpcName}' ({$config->vpcId}) in AWS...");

@@ -4,10 +4,14 @@ declare(strict_types=1);
 namespace Learnomancer;
 
 use Aws\Ec2;
+use Aws\Iam;
 
 final class AwsClient
 {
 	private Ec2\Ec2Client $client;
+
+	private string $userArn;
+	private string $username;
 
 	/**
 	 * Create an AwsClient for the region
@@ -19,6 +23,27 @@ final class AwsClient
 			'region' => $region,
 			'version' => 'latest',
 		]);
+	}
+
+	/**
+	 * Get IAM user
+	 */
+	public function loadUser(): void
+	{
+		$iamClient = new Iam\IamClient([
+			'region' => 'us-east-1',
+			'version' => 'latest',
+		]);
+
+		/**
+		 * Get the current user
+		 *
+		 * @var array{U: string, A: string} $user
+		 */
+		$user = $iamClient->getUser()->search('User.{U: UserName, A: Arn}');
+
+		$this->userArn  = $user['A'];
+		$this->username = $user['U'];
 	}
 
 	/**
@@ -210,6 +235,12 @@ final class AwsClient
 	{
 		$res = $this->client->createVpc([
 			'CidrBlock' => $cidrMask,
+			'TagSpecifications' => [
+				[
+					'ResourceType' => 'vpc',
+					'Tags' => $this->getStandardTags($name),
+				],
+			],
 		]);
 
 		/**
@@ -217,9 +248,6 @@ final class AwsClient
 		 */
 		$vpc   = $res->get('Vpc');
 		$vpcId = $vpc['VpcId'];
-
-		// Tag the VPC
-		$this->tagEntity($vpcId, 'Name', $name);
 
 		return $vpcId;
 	}
@@ -291,6 +319,114 @@ final class AwsClient
 	public function getVpcByName(string $vpcName): array
 	{
 		return $this->searchVpc('tag:Name', $vpcName);
+	}
+
+	/**
+	 * Create a subnet
+	 */
+	public function createSubnet(string $vpcId, string $name, string $cidrMask): string
+	{
+		$res = $this->client->createSubnet([
+			'VpcId' => $vpcId,
+			'CidrBlock' => $cidrMask,
+			'TagSpecifications' => [
+				[
+					'ResourceType' => 'subnet',
+					'Tags' => $this->getStandardTags($name),
+				],
+			],
+		]);
+
+		/**
+		 * @var array{SubnetId?: string} $subnet
+		 */
+		$subnet = $res->get('Subnet');
+		if (!isset($subnet['SubnetId']))
+		{
+			throw new LearnomancerException('No subnet id was returned');
+		}
+
+		return $subnet['SubnetId'];
+	}
+
+	/**
+	 * Create a gateway
+	 */
+	public function createGateway(string $name): string
+	{
+		$res = $this->client->createInternetGateway([
+			'TagSpecifications' => [
+				[
+					'ResourceType' => 'internet-gateway',
+					'Tags' => $this->getStandardTags($name),
+				],
+			],
+		]);
+
+		/**
+		 * @var array{InternetGatewayId?: string} $gateway
+		 */
+		$gateway = $res->get('InternetGateway');
+		if (!isset($gateway['InternetGatewayId']))
+		{
+			throw new LearnomancerException('No gateway id was returned');
+		}
+
+		return $gateway['InternetGatewayId'];
+	}
+
+	/**
+	 * Create a routing table
+	 */
+	public function createRouteTable(string $vpcId, string $name): string
+	{
+		$res = $this->client->createRouteTable([
+			'VpcId' => $vpcId,
+			'TagSpecifications' => [
+				[
+					'ResourceType' => 'route-table',
+					'Tags' => $this->getStandardTags($name),
+				],
+			],
+		]);
+
+		/**
+		 * @var array{RouteTableId?: string} $routetable
+		 */
+		$routetable = $res->get('RouteTable');
+		if (!isset($routetable['RouteTableId']))
+		{
+			throw new LearnomancerException('No route table id was returned');
+		}
+
+		return $routetable['RouteTableId'];
+	}
+
+	/**
+	 * Returns array of standard tags
+	 *
+	 * @return array<array<string, string>>
+	 */
+	private function getStandardTags(string $name): array
+	{
+		return [
+			[
+				'Key' => 'Name',
+				'Value' => $name,
+			],
+			[
+				'Key' => 'CreatedBy',
+				'Value' => $this->username,
+			],
+			[
+				'Key' => 'CreatedByArn',
+				'Value' => $this->userArn,
+			],
+			[
+				'Key' => 'TrainingEndDate',
+				'Value' => date('Y-m-d', strtotime('+7 days')),
+			],
+		];
 	}
 
 	/**

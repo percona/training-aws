@@ -1,6 +1,18 @@
 <?php
 declare(strict_types=1);
 
+/**
+ * die(var_dump()) no longer works in 8.4 like it did before. This
+ * is a crude wrapper attempt.
+ *
+ * @param mixed $value
+ */
+function dvd(mixed $value): void
+{
+	var_dump($value);
+	die;
+}
+
 return [
 
 	/**
