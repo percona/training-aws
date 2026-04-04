@@ -21,6 +21,8 @@
 		<exclude name="Generic.Arrays.DisallowShortArraySyntax.Found" />
 		<exclude name="Generic.Classes.OpeningBraceSameLine.BraceOnNewLine" />
 		<exclude name="Generic.CodeAnalysis.AssignmentInCondition" />
+		<exclude name="Generic.Commenting.DocComment.ContentAfterOpen" />
+		<exclude name="Generic.Commenting.DocComment.ContentBeforeClose" />
 		<exclude name="Generic.Commenting.DocComment.MissingShort" />
 		<exclude name="Generic.Commenting.DocComment.NonParamGroup" />
 		<exclude name="Generic.Files.EndFileNoNewline.Found" />

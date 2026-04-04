@@ -81,9 +81,7 @@ final class AwsClient
 			],
 		]);
 
-		/**
-		 * @var array<string> $ids
-		 */
+		/** @var array<string> $ids */
 		$ids = $res->search('Instances[*].InstanceId');
 
 		return $ids;
@@ -217,9 +215,7 @@ final class AwsClient
 
 		// We only care about the image name, and the id
 
-		/**
-		 * @var array<array{Name: string, ImageId: string}> $images
-		 */
+		/** @var array<array{Name: string, ImageId: string}> $images */
 		$images = $res->search('Images[*].{Name: Name, ImageId: ImageId}');
 		usort($images, function ($a, $b) {
 			return strcasecmp($a['Name'], $b['Name']);
@@ -243,9 +239,7 @@ final class AwsClient
 			],
 		]);
 
-		/**
-		 * @var array{VpcId: string} $vpc
-		 */
+		/** @var array{VpcId: string} $vpc */
 		$vpc   = $res->get('Vpc');
 		$vpcId = $vpc['VpcId'];
 
@@ -337,9 +331,7 @@ final class AwsClient
 			],
 		]);
 
-		/**
-		 * @var array{SubnetId?: string} $subnet
-		 */
+		/** @var array{SubnetId?: string} $subnet */
 		$subnet = $res->get('Subnet');
 		if (!isset($subnet['SubnetId']))
 		{
@@ -363,9 +355,7 @@ final class AwsClient
 			],
 		]);
 
-		/**
-		 * @var array{InternetGatewayId?: string} $gateway
-		 */
+		/** @var array{InternetGatewayId?: string} $gateway */
 		$gateway = $res->get('InternetGateway');
 		if (!isset($gateway['InternetGatewayId']))
 		{
@@ -390,9 +380,7 @@ final class AwsClient
 			],
 		]);
 
-		/**
-		 * @var array{RouteTableId?: string} $routetable
-		 */
+		/** @var array{RouteTableId?: string} $routetable */
 		$routetable = $res->get('RouteTable');
 		if (!isset($routetable['RouteTableId']))
 		{
@@ -400,6 +388,77 @@ final class AwsClient
 		}
 
 		return $routetable['RouteTableId'];
+	}
+
+	/**
+	 * Assign a subnet to a route table
+	 */
+	public function assignSubnetToRouteTable(string $routetableId, string $subnetId): string
+	{
+		$res = $this->client->associateRouteTable([
+			'SubnetId' => $subnetId,
+			'RouteTableId' => $routetableId,
+		]);
+
+		/** @var string $associationId */
+		$associationId = $res->get('AssociationId');
+
+		return $associationId;
+	}
+
+	/**
+	 * Attach gateway to VPC
+	 */
+	public function attachGatewayToVpc(string $gatewayId, string $vpcId): void
+	{
+		$this->client->attachInternetGateway([
+			'InternetGatewayId' => $gatewayId,
+			'VpcId' => $vpcId,
+		]);
+	}
+
+	/**
+	 * Get network ACL Id
+	 */
+	public function getNetworkAclId(string $vpcId): string
+	{
+		$res = $this->client->describeNetworkAcls([
+			'Filters' => [
+				[
+					'Name' => 'vpc-id',
+					'Values' => $vpcId,
+				],
+			],
+		]);
+
+		/** @var array{NetworkAclId?: string} $networkacl */
+		$networkacl = $res->get('NetworkAcls');
+		if (count($networkacl) !== 1)
+		{
+			throw new LearnomancerException('Got more than 1 Network ACL. Investigate.');
+		}
+
+		return $networkacl['NetworkAclId'];
+	}
+
+	/**
+	 * Creates inbound route
+	 */
+	public function createInboundRoute(string $routetableId, string $gatewayId): bool
+	{
+		$res = $this->client->createRoute([
+			'RouteTableId' => $routetableId,
+			'DestinationCidrBlock' => '0.0.0.0/0',
+			'GatewayId' => $gatewayId,
+		]);
+
+		// phpcs:ignore Generic.Formatting.SpaceBeforeCast.NoSpace
+		if (!(bool)$res->get('Return'))
+		{
+			throw new LearnomancerException('Failed to create inbound route. Investigate.');
+		}
+
+		return true;
 	}
 
 	/**
