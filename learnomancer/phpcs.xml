@@ -12,6 +12,8 @@
 	<!-- Import PSR-12 as the basis; PSR12 replaces/includes PSR2 -->
 	<rule ref="PSR12">
 		<exclude name="PSR2.ControlStructures.SwitchDeclaration.BodyOnNextLineCASE" />
+		<exclude name="PSR12.ControlStructures.ControlStructureSpacing.CloseParenthesisLine" />
+		<exclude name="PSR12.ControlStructures.ControlStructureSpacing.FirstExpressionLine" />
 
 		<!-- Allow tabs as indent //-->
 		<exclude name="Generic.WhiteSpace.DisallowTabIndent" />

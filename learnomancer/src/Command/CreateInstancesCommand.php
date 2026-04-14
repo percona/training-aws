@@ -109,7 +109,7 @@ class CreateInstancesCommand extends BaseCommand
 		try
 		{
 			$config = new Learnomancer\LearnomancerConfig($slug, $region);
-			$config->loadConfig();
+			$config->load();
 		}
 		catch (Learnomancer\LearnomancerException | Exception $e)
 		{

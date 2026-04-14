@@ -229,12 +229,19 @@ final class AwsClient
 	 */
 	public function createVpc(string $cidrMask, string $name): string
 	{
+		$vpcName           = "{$name}-VPC";
+		$securityGroupName = "{$name}-SG";
+
 		$res = $this->client->createVpc([
 			'CidrBlock' => $cidrMask,
 			'TagSpecifications' => [
 				[
 					'ResourceType' => 'vpc',
-					'Tags' => $this->getStandardTags($name),
+					'Tags' => $this->getStandardTags($vpcName),
+				],
+				[
+					'ResourceType' => 'security-group',
+					'Tags' => $this->getStandardTags($securityGroupName),
 				],
 			],
 		]);
@@ -318,7 +325,7 @@ final class AwsClient
 	/**
 	 * Create a subnet
 	 */
-	public function createSubnet(string $vpcId, string $name, string $cidrMask): string
+	public function createSubnetOnVpc(string $vpcId, string $name, string $cidrMask): string
 	{
 		$res = $this->client->createSubnet([
 			'VpcId' => $vpcId,
@@ -335,14 +342,29 @@ final class AwsClient
 		$subnet = $res->get('Subnet');
 		if (!isset($subnet['SubnetId']))
 		{
-			throw new LearnomancerException('No subnet id was returned');
+			throw new LearnomancerException('No id was returned when creating subnet on vpc');
 		}
 
 		return $subnet['SubnetId'];
 	}
 
 	/**
-	 * Create a gateway
+	 * Create a gateway, and attach to VPC
+	 *
+	 * @return string Gateway id
+	 */
+	public function createGatewayOnVpc(string $vpcId, string $name): string
+	{
+		$gatewayId = $this->createGateway($name);
+		$this->attachGatewayToVpc($gatewayId, $vpcId);
+
+		return $gatewayId;
+	}
+
+	/**
+	 * Creates a gateway
+	 *
+	 * @return string Gateway id
 	 */
 	public function createGateway(string $name): string
 	{
@@ -359,10 +381,48 @@ final class AwsClient
 		$gateway = $res->get('InternetGateway');
 		if (!isset($gateway['InternetGatewayId']))
 		{
-			throw new LearnomancerException('No gateway id was returned');
+			throw new LearnomancerException('No id was returned when creating new internet gateway');
 		}
 
 		return $gateway['InternetGatewayId'];
+	}
+
+	/**
+	 * Search for an internet gateway
+	 *
+	 * @return array{GatewayId: string, VpcId: string, State: string}
+	 */
+	public function getGatewayWithId(string $gatewayId): array
+	{
+		$res = $this->client->describeInternetGateways([
+			'Filters' => [
+				[
+					'Name' => 'internet-gateway-id',
+					'Values' => [$gatewayId],
+				],
+			],
+		]);
+
+		/** @var array<array{InternetGatewayId: string, Attachments: array<array{State: string, VpcId: string}>}> $gateways */
+		$gateways = $res->get('InternetGateways');
+		if (count($gateways) !== 1)
+		{
+			throw new LearnomancerException('Got more than 1 internet gateway. Investigate.');
+		}
+
+		$gateway     = $gateways[0];
+		$attachments = $gateway['Attachments'];
+
+		if (count($attachments) !== 1)
+		{
+			throw new LearnomancerException('Internet gateway has more than 1 attachment. Investigate.');
+		}
+
+		return [
+			'GatewayId' => $gateway['InternetGatewayId'],
+			'VpcId' => $attachments[0]['VpcId'],
+			'State' => $attachments[0]['State'],
+		];
 	}
 
 	/**
@@ -426,7 +486,7 @@ final class AwsClient
 			'Filters' => [
 				[
 					'Name' => 'vpc-id',
-					'Values' => $vpcId,
+					'Values' => [$vpcId],
 				],
 			],
 		]);
@@ -459,6 +519,82 @@ final class AwsClient
 		}
 
 		return true;
+	}
+
+	/**
+	 * Search for subnet with subnet id
+	 *
+	 * @return array{SubnetId: string, VpcId: string}
+	 */
+	public function getSubnetWithId(string $subnetId): array
+	{
+		// Search for subnet
+		$res = $this->client->describeSubnets([
+			'Filters' => [
+				[
+					'Name' => 'subnet-id',
+					'Values' => [$subnetId],
+				],
+			],
+		]);
+
+		/** @var array<array{SubnetId: string, VpcId: string}> $subnets */
+		$subnets = $res->get('Subnets');
+		if (count($subnets) !== 1)
+		{
+			throw new LearnomancerException('Found something other than 1 subnet. Investigate');
+		}
+
+		return $subnets[0];
+	}
+
+	/**
+	 * Validate, and/or create security group rules. Get the default security group
+	 * for our VPC, and check if it has inbound SSH, http, alt-http, and https
+	 *
+	 * @return array<string> Security group information
+	 */
+	public function getSecurityGroupForVpc(string $vpcId): array
+	{
+		$res = $this->client->describeSecurityGroups([
+			'Filters' => [
+				[
+					'Name' => 'vpc-id',
+					'Values' => [$vpcId],
+				],
+			],
+		]);
+
+		/** @var array<array<string>> $securityGroups */
+		$securityGroups = $res->get('SecurityGroups');
+		if (count($securityGroups) !== 1)
+		{
+			throw new LearnomancerException('Found something other than 1 security group. Investigate.');
+		}
+
+		return $securityGroups[0];
+	}
+
+	/**
+	 * Creates/adds a new rule to a security group
+	 */
+	public function addIngressRule(string $securityGroupId, int $port, string $cidr): void
+	{
+		$this->client->authorizeSecurityGroupIngress([
+			'GroupId' => $securityGroupId,
+			'IpPermissions' => [
+				[
+					'IpProtocol' => 'tcp',
+					'FromPort' => $port,
+					'ToPort' => $port,
+					'IpRanges' => [
+						[
+							'CidrIp' => $cidr,
+						],
+					],
+				],
+			],
+		]);
 	}
 
 	/**

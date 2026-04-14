@@ -42,7 +42,7 @@ final class LearnomancerConfig
 	 *
 	 * @throws \Learnomancer\LearnomancerException
 	 */
-	public function loadConfig(bool $missingOk = false): void
+	public function load(bool $missingOk = false): void
 	{
 		// Get config file name
 		$configFile = self::getConfigFile($this->slug, $this->region);
@@ -89,7 +89,7 @@ final class LearnomancerConfig
 	/**
 	 * Encode and persist the config to disk
 	 */
-	public function saveConfig(): bool
+	public function save(): bool
 	{
 		$configFile = self::getConfigFile($this->slug, $this->region);
 
