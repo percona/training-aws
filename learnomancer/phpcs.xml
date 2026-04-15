@@ -30,6 +30,7 @@
 		<exclude name="Generic.Files.EndFileNoNewline.Found" />
 		<exclude name="Generic.Files.LineLength" />
 		<exclude name="Generic.Files.LowercasedFilename.NotFound" />
+		<exclude name="Generic.Formatting.SpaceBeforeCast.NoSpace" />
 		<exclude name="Generic.Functions.OpeningFunctionBraceKernighanRitchie.BraceOnNewLine" />
 		<exclude name="Generic.Metrics.CyclomaticComplexity.TooHigh" />
 		<exclude name="Generic.PHP.ClosingPHPTag.NotFound" />

@@ -6,6 +6,29 @@ namespace Learnomancer;
 use Aws\Ec2;
 use Aws\Iam;
 
+/**
+ * @phpstan-type SecurityGroup array{
+ *		GroupId: string,
+ *		IpPermissions: array<int, array{
+ * 			IpProtocol: string,
+ *			FromPort: int,
+ *			ToPort: int,
+ *			IpRanges: array<int, array{
+ *				CidrIp: string
+ *			}>
+ *		}
+ *	>}
+ *
+ * @phpstan-type InstanceReservation array<array{
+ *		InstanceId: string,
+ *		PublicIpAddress: string,
+ *		PrivateIpAddress: string,
+ *		Tags: array<array{
+ *			Key: string,
+ *			Value: string
+ *		}>
+ *	}>
+ */
 final class AwsClient
 {
 	private Ec2\Ec2Client $client;
@@ -106,15 +129,7 @@ final class AwsClient
 		]);
 
 		/**
-		 * @var array<int, array<int, array{
-		 *		InstanceId: string,
-		 *		PublicIpAddress: string,
-		 *		PrivateIpAddress: string,
-		 *		Tags: array<int, array{
-		 *			Key: string,
-		 *			Value: string
-		 *		}>
-		 *	}>> $reservations
+		 * @var array<InstanceReservation> $reservations
 		 */
 		$reservations = $res->search('Reservations[*].Instances[*].{
 			InstanceId: InstanceId,
@@ -227,21 +242,14 @@ final class AwsClient
 	/**
 	 * Create a VPC with CIDR range, and name
 	 */
-	public function createVpc(string $cidrMask, string $name): string
+	public function createVpc(string $cidrMask, string $vpcName): string
 	{
-		$vpcName           = "{$name}-VPC";
-		$securityGroupName = "{$name}-SG";
-
 		$res = $this->client->createVpc([
 			'CidrBlock' => $cidrMask,
 			'TagSpecifications' => [
 				[
 					'ResourceType' => 'vpc',
 					'Tags' => $this->getStandardTags($vpcName),
-				],
-				[
-					'ResourceType' => 'security-group',
-					'Tags' => $this->getStandardTags($securityGroupName),
 				],
 			],
 		]);
@@ -302,8 +310,8 @@ final class AwsClient
 			return $vpcs[0];
 		}
 
-		// Return empty
-		return $vpcs;
+		// Otherwise, return empty
+		return [];
 	}
 
 	/**
@@ -356,7 +364,7 @@ final class AwsClient
 	public function createGatewayOnVpc(string $vpcId, string $name): string
 	{
 		$gatewayId = $this->createGateway($name);
-		$this->attachGatewayToVpc($gatewayId, $vpcId);
+		$this->attachGatewayToVpc($vpcId, $gatewayId);
 
 		return $gatewayId;
 	}
@@ -392,7 +400,7 @@ final class AwsClient
 	 *
 	 * @return array{GatewayId: string, VpcId: string, State: string}
 	 */
-	public function getGatewayWithId(string $gatewayId): array
+	public function getGatewayById(string $gatewayId): array
 	{
 		$res = $this->client->describeInternetGateways([
 			'Filters' => [
@@ -426,9 +434,38 @@ final class AwsClient
 	}
 
 	/**
+	 * Search for route table by ID
+	 *
+	 * @return array{RouteTableId: string, VpcId: string}
+	 */
+	public function getRouteTableById(string $routeTableId): array
+	{
+		$res = $this->client->describeRouteTables([
+			'Filters' => [
+				[
+					'Name' => 'route-table-id',
+					'Values' => [$routeTableId],
+				],
+			],
+		]);
+
+		/** @var array<array{RouteTableId: string, VpcId: string}> $routeTables */
+		$routeTables = $res->get('RouteTables');
+		if (count($routeTables) !== 1)
+		{
+			throw new LearnomancerException('Got more than 1 route table.');
+		}
+
+		return [
+			'RouteTableId' => $routeTables[0]['RouteTableId'],
+			'VpcId' => $routeTables[0]['VpcId'],
+		];
+	}
+
+	/**
 	 * Create a routing table
 	 */
-	public function createRouteTable(string $vpcId, string $name): string
+	public function createRouteTableOnVpc(string $vpcId, string $name): string
 	{
 		$res = $this->client->createRouteTable([
 			'VpcId' => $vpcId,
@@ -453,11 +490,11 @@ final class AwsClient
 	/**
 	 * Assign a subnet to a route table
 	 */
-	public function assignSubnetToRouteTable(string $routetableId, string $subnetId): string
+	public function assignSubnetToRouteTable(string $subnetId, string $routeTableId): string
 	{
 		$res = $this->client->associateRouteTable([
+			'RouteTableId' => $routeTableId,
 			'SubnetId' => $subnetId,
-			'RouteTableId' => $routetableId,
 		]);
 
 		/** @var string $associationId */
@@ -469,7 +506,7 @@ final class AwsClient
 	/**
 	 * Attach gateway to VPC
 	 */
-	public function attachGatewayToVpc(string $gatewayId, string $vpcId): void
+	public function attachGatewayToVpc(string $vpcId, string $gatewayId): void
 	{
 		$this->client->attachInternetGateway([
 			'InternetGatewayId' => $gatewayId,
@@ -480,7 +517,7 @@ final class AwsClient
 	/**
 	 * Get network ACL Id
 	 */
-	public function getNetworkAclId(string $vpcId): string
+	public function getNetworkAclById(string $vpcId): string
 	{
 		$res = $this->client->describeNetworkAcls([
 			'Filters' => [
@@ -504,15 +541,14 @@ final class AwsClient
 	/**
 	 * Creates inbound route
 	 */
-	public function createInboundRoute(string $routetableId, string $gatewayId): bool
+	public function createInboundRoute(string $routeTableId, string $gatewayId): bool
 	{
 		$res = $this->client->createRoute([
-			'RouteTableId' => $routetableId,
+			'RouteTableId' => $routeTableId,
 			'DestinationCidrBlock' => '0.0.0.0/0',
 			'GatewayId' => $gatewayId,
 		]);
 
-		// phpcs:ignore Generic.Formatting.SpaceBeforeCast.NoSpace
 		if (!(bool)$res->get('Return'))
 		{
 			throw new LearnomancerException('Failed to create inbound route. Investigate.');
@@ -526,7 +562,7 @@ final class AwsClient
 	 *
 	 * @return array{SubnetId: string, VpcId: string}
 	 */
-	public function getSubnetWithId(string $subnetId): array
+	public function getSubnetById(string $subnetId): array
 	{
 		// Search for subnet
 		$res = $this->client->describeSubnets([
@@ -552,7 +588,7 @@ final class AwsClient
 	 * Validate, and/or create security group rules. Get the default security group
 	 * for our VPC, and check if it has inbound SSH, http, alt-http, and https
 	 *
-	 * @return array<string> Security group information
+	 * @return SecurityGroup Security group information
 	 */
 	public function getSecurityGroupForVpc(string $vpcId): array
 	{
@@ -565,7 +601,7 @@ final class AwsClient
 			],
 		]);
 
-		/** @var array<array<string>> $securityGroups */
+		/** @var array<SecurityGroup> $securityGroups */
 		$securityGroups = $res->get('SecurityGroups');
 		if (count($securityGroups) !== 1)
 		{

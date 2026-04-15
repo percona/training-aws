@@ -11,6 +11,10 @@ use Cake\Core\Configure;
 use Exception;
 use Learnomancer;
 
+/**
+ * @phpstan-import-type SecurityGroup from \Learnomancer\AwsClient
+ */
+
 class CreateVpcCommand extends BaseCommand
 {
 	private Learnomancer\AwsClient $ec2;
@@ -31,6 +35,14 @@ class CreateVpcCommand extends BaseCommand
 			],
 		]);
 
+		$parser->addOptions([
+			'rebuild' => [
+				'short' => 'r',
+				'help' => 'Rebuild config using VPC name, and region',
+				'boolean' => true,
+			],
+		]);
+
 		return $parser;
 	}
 
@@ -44,7 +56,7 @@ class CreateVpcCommand extends BaseCommand
 	 */
 	public function execute(Arguments $args, ConsoleIo $io): ?int
 	{
-		// Validate options
+		// Validate arguments
 		$slug   = $args->getArgument('slug') ?: $io->abort('Missing slug parameter');
 		$region = $args->getArgument('region') ?: $io->abort('Missing region parameter');
 
@@ -69,107 +81,163 @@ class CreateVpcCommand extends BaseCommand
 
 			$baseName = "Percona-Training-{$slug}";
 			$vpcName  = "{$baseName}-VPC";
+			$vpcCidr  = $this->getSubnetCidrBlock($region);
 
-			$io->out("- Checking for VPC '{$vpcName}' ({$config->vpcId}) in AWS...");
-
-			// Check by Name, and exit on duplicate name
-			$vpc = $this->ec2->getVpcByName($vpcName);
-			if (!empty($vpc))
+			/**
+			 * If no VPC Id in config file, search for VPC based off name.
+			 */
+			$vpcId = $config->vpcId;
+			if (empty($vpcId))
 			{
-				$io->error("!! A VPC with that name already exists: {$vpc['Name']} ({$vpc['VpcId']})");
-				$io->error('!! Please use a different region, different slug, or execute rebuild-config');
+				$io->out("- No VPC Id in config file. Searching by name '{$vpcName}'...");
+				$rebuild = $args->getOption('rebuild');
+
+				$vpc = $this->ec2->getVpcByName($vpcName);
+				if (!empty($vpc) && !$rebuild)
+				{
+					$io->error("!! A VPC with that name already exists: {$vpc['Name']} ({$vpc['VpcId']})");
+					$io->error("!! Please use a different region, different slug, or use '-r' to rebuild the config.");
+
+					return static::CODE_ERROR;
+				}
+				elseif (empty($vpc))
+				{
+					// Nothing found via matching name. This is a brand new vpc creation.
+					$io->out("- VPC '{$vpcName}' not found. Creating new VPC...");
+					$vpcId = $this->ec2->createVpc($vpcCidr, $vpcName);
+
+					$io->out("-- VPC {$vpcName} ({$vpcId}) created in {$region}");
+				}
+
+				$config->vpcId  = $vpcId;
+				$config->region = $region;
+				$config->save();
+			}
+
+			$io->out("- Checking VPC ({$vpcId}) status...");
+			$vpc = $this->ec2->getVpcById($vpcId);
+			if (empty($vpc) || $vpc['Name'] !== $vpcName)
+			{
+				$io->error("!! VPC '{$vpcId}' found, but does not match '{$vpcName}'. Please investigate.");
 
 				return static::CODE_ERROR;
 			}
 
-			$io->out("- VPC '{$vpcName}' not found. Creating new VPC...");
-
-			$vpcCidr = $this->getSubnetCidrBlock($region);
-			$vpcId   = $this->ec2->createVpc($vpcCidr, $vpcName);
-
-			$config->vpcId  = $vpcId;
-			$config->region = $region;
-			$config->save();
-
-			$io->out("- VPC Created: {$vpcName} ({$vpcId})");
+			$io->out("-- VPC '{$vpcName}' is OK");
 
 			/**
 			 * Add/Check subnet
 			 */
 			$subnetId = $config->subnetId;
-			if (!empty($subnetId))
-			{
-				$io->out("- Checking for subnet ({$subnetId})");
-				$subnet = $this->ec2->getSubnetWithId($subnetId);
-				if ($subnet['VpcId'] !== $vpcId)
-				{
-					$io->error("!! Subnet ({$subnetId}) does not belong to VPC ({$vpcId}) !!");
-					$io->error('!! Please execute rebuild-config if you believe this to be in error.');
-
-					return static::CODE_ERROR;
-				}
-			}
-			else
+			if (empty($subnetId))
 			{
 				$io->out('- No subnet found for VPC in config. Creating new subnet...');
 				$subnetName = "{$baseName}-SN";
 				$subnetId   = $this->ec2->createSubnetOnVpc($vpcId, $subnetName, $vpcCidr);
-				$io->out("- Subnet Created: {$subnetName} ({$subnetId})");
+				$io->out("-- Subnet Created: {$subnetName} ({$subnetId})");
 
 				$config->subnetId = $subnetId;
 				$config->save();
 			}
 
+			$io->out("- Checking subnet ({$subnetId}) status...");
+			$subnet = $this->ec2->getSubnetById($subnetId);
+			if ($subnet['VpcId'] !== $vpcId)
+			{
+				$io->error("!! Subnet ({$subnetId}) does not belong to VPC ({$vpcId}) !!");
+				$io->error('!! Please execute rebuild-config if you believe this to be in error.');
+
+				return static::CODE_ERROR;
+			}
+
+			$io->out("-- Subnet ({$subnetId}) is attached to VPC");
+
 			/**
 			 * Add/Check internet gateway
 			 */
 			$gatewayId = $config->gatewayId;
-			if (!empty($gatewayId))
-			{
-				$io->out("- Checking for internet gateway ({$gatewayId})");
-				$gateway = $this->ec2->getGatewayWithId($gatewayId);
-				if ($gateway['VpcId'] !== $vpcId)
-				{
-					$io->error("!! Gateway ({$gatewayId}) does not belong to VPC ({$vpcId}) !!");
-					$io->error('!! Please execute rebuild-config if you believe this to be in error.');
-
-					return static::CODE_ERROR;
-				}
-			}
-			else
+			if (empty($gatewayId))
 			{
 				$io->out('- No internet gateway found for VPC in config. Creating new gateway...');
 				$gatewayName = "{$baseName}-GW";
 				$gatewayId   = $this->ec2->createGatewayOnVpc($vpcId, $gatewayName);
-				$io->out("- Gateway Created: {$gatewayName} ({$gatewayId})");
+				$io->out("-- Gateway Created: {$gatewayName} ({$gatewayId})");
 
 				$config->gatewayId = $gatewayId;
 				$config->save();
 			}
 
-			/**
-			 * Add/Check security group
-			 */
+			$io->out("- Checking internet gateway ({$gatewayId}) status...");
+			$gateway = $this->ec2->getGatewayById($gatewayId);
+			if ($gateway['VpcId'] !== $vpcId)
+			{
+				$io->error("!! Gateway ({$gatewayId}) does not belong to VPC ({$vpcId}) !!");
+				$io->error('!! Please execute rebuild-config if you believe this to be in error.');
 
-			/** @var array{
-			 *		GroupId: string,
-			 *		IpPermissions: array<int, array{
-			 * 			IpProtocol: string,
-			 *			FromPort: int,
-			 *			ToPort: int,
-			 *			IpRanges: array<int, array{
-			 *				CidrIp: string,
-			 *			}>,
-			 *		}>
-			 *	} $securityGroup
-			 *
-			 * Check for Security group
+				return static::CODE_ERROR;
+			}
+
+			// Check attachment status of gateway. If not attached, then attach it
+			if (!in_array($gateway['State'], ['available', 'attaching', 'attached']))
+			{
+				$this->ec2->attachGatewayToVpc($vpcId, $gatewayId);
+			}
+
+			$io->out("-- Gateway ({$gatewayId}) is attached to VPC");
+
+			/**
+			 * Add/Check route table
+			 */
+			$routeTableId = $config->routeTableId;
+			if (empty($routeTableId))
+			{
+				$io->out('- No route table found for VPC in config. Creating new route table...');
+				$routeTableName = "{$baseName}-RT";
+				$routeTableId   = $this->ec2->createRouteTableOnVpc($vpcId, $routeTableName);
+				$io->out("-- Route table created: {$routeTableName} ({$routeTableId})");
+
+				// Add the 0.0.0.0 inbound route to the table
+				$this->ec2->createInboundRoute($routeTableId, $gatewayId);
+
+				$config->routeTableId = $routeTableId;
+				$config->save();
+			}
+
+			$io->out("- Checking routing table ({$routeTableId}) status...");
+			$routeTable = $this->ec2->getRouteTableById($routeTableId);
+			if ($routeTable['VpcId'] !== $vpcId)
+			{
+				$io->error("!! Route table ({$routeTableId}) does not belong to VPC ({$vpcId}) !!");
+				$io->error('!! Please execute rebuild-config if you believe this to be in error.');
+
+				return static::CODE_ERROR;
+			}
+
+			$io->out("-- Route table ({$routeTableId}) is attached to VPC");
+
+			/**
+			 * Associate subnet to route table
+			 */
+			$config->associationId = $this->ec2->assignSubnetToRouteTable($subnetId, $routeTableId);
+			$config->save();
+			$io->out('- Associated subnet with route table');
+
+			/**
+			 * Get the security group created automatically on VPC creation
 			 */
 			$securityGroup   = $this->ec2->getSecurityGroupForVpc($vpcId);
 			$securityGroupId = $securityGroup['GroupId'];
 
+			$config->securityGroupId = $securityGroupId;
+			$config->save();
+
+			/**
+			 * Check security group has correct inbound permissions
+			 */
+			$io->out('- Checking security group ingress rules...');
 			$this->ensureSecurityGroupPermissions($securityGroup, $io);
-			$this->ec2->tagEntity($securityGroupId, 'Name', "{$vpcName}-SG");
+
+			$io->success('!! All done. VPC created. !!');
 		}
 		catch(Learnomancer\LearnomancerException | Exception $e)
 		{
@@ -181,17 +249,8 @@ class CreateVpcCommand extends BaseCommand
 		return static::CODE_SUCCESS;
 	}
 
-	/** @param array{
-	 *		GroupId: string,
-	 *		IpPermissions: array<int, array{
-	 * 			IpProtocol: string,
-	 *			FromPort: int,
-	 *			ToPort: int,
-	 *			IpRanges: array<int, array{
-	 *				CidrIp: string,
-	 *			}>,
-	 *		}>
-	 *	} $securityGroup
+	/**
+	 * @param SecurityGroup $securityGroup
 	 */
 	private function ensureSecurityGroupPermissions(array $securityGroup, ConsoleIo $io): void
 	{

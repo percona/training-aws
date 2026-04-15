@@ -23,7 +23,8 @@ final class LearnomancerConfig
 	public string $gatewayId = '';
 
 	// Routing Info
-	public string $routeTableId = '';
+	public string $routeTableId  = '';
+	public string $associationId = '';
 
 	// Security Group Info
 	public string $securityGroupId = '';
