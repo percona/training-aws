@@ -55,7 +55,9 @@ final class Application implements ConsoleApplicationInterface
 		$commands->add('ansible-config', Command\AnsibleConfigCommand::class);
 		$commands->add('ssh-config', Command\SshConfigCommand::class);
 		$commands->add('sync-dynamo', Command\SyncDynamoCommand::class);
+		$commands->add('summary', Command\ClassSummaryCommand::class);
 
+		$commands->add('create-class', Command\CreateInstancesCommand::class); // Alias
 		$commands->add('create-instances', Command\CreateInstancesCommand::class);
 		$commands->add('drop-instances', Command\DropInstancesCommand::class);
 
