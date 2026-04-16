@@ -68,7 +68,7 @@ class CreateVpcCommand extends BaseCommand
 		}
 		catch (Learnomancer\LearnomancerException | Exception $e)
 		{
-			$io->error($e->getMessage());
+			$io->error("!! Failed to load config: {$e->getMessage()} !!");
 
 			return static::CODE_ERROR;
 		}
@@ -81,7 +81,7 @@ class CreateVpcCommand extends BaseCommand
 
 			$baseName = "Percona-Training-{$slug}";
 			$vpcName  = "{$baseName}-VPC";
-			$vpcCidr  = $this->getSubnetCidrBlock($region);
+			$vpcCidr  = $config->vpcCidrBlock = $this->getSubnetCidrBlock($region);
 
 			/**
 			 * If no VPC Id in config file, search for VPC based off name.

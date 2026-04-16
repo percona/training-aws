@@ -6,18 +6,15 @@ namespace Learnomancer;
 final class LearnomancerConfig
 {
 	// Basic info
-	public string $region  = '';
-	public string $slug    = '';
-	public string $keypair = '';
+	public string $region = '';
+	public string $slug   = '';
 
 	// VPC Info
 	public string $vpcId        = '';
 	public string $vpcCidrBlock = '';
 
 	// Subnet Info
-	public string $subnetId        = '';
-	public string $subnetCidrBlock = '';
-	public string $subnetAz        = '';
+	public string $subnetId = '';
 
 	// Gateway Info
 	public string $gatewayId = '';

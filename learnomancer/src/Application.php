@@ -57,6 +57,7 @@ final class Application implements ConsoleApplicationInterface
 		$commands->add('create-instances', Command\CreateInstancesCommand::class);
 
 		$commands->add('create-vpc', Command\CreateVpcCommand::class);
+		$commands->add('drop-vpc', Command\DropVpcCommand::class);
 
 		return $commands;
 	}

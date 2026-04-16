@@ -70,47 +70,6 @@ final class AwsClient
 	}
 
 	/**
-	 * Create a number of instances using an AMI image in a VPC (ie: subnet)
-	 *
-	 * @return array<string>
-	 */
-	public function createInstances(int $count, string $instanceType, string $subnetId, string $ami): array
-	{
-		$res = $this->client->runInstances([
-			'ImageId' => $ami,
-			'MinCount' => $count,
-			'MaxCount' => $count,
-			'InstanceType' => $instanceType,
-			'CreditSpecification' => [
-				'CpuCredits' => 'unlimited',
-			],
-			'KeyName' => 'Percona-Training',
-			'NetworkInterfaces' => [
-				[
-					'DeviceIndex' => 0,
-					'AssociatePublicIpAddress' => true,
-					'SubnetId' => $subnetId,
-				],
-			],
-			'BlockDeviceMappings' => [
-				[
-					'DeviceName' => '/dev/sda1',
-					'Ebs' => [
-						'VolumeSize' => 100,
-						'DeleteOnTermination' => true,
-						'VolumeType' => 'gp2',
-					],
-				],
-			],
-		]);
-
-		/** @var array<string> $ids */
-		$ids = $res->search('Instances[*].InstanceId');
-
-		return $ids;
-	}
-
-	/**
 	 * Searches for, and returns any instances matching the slug pattern
 	 *
 	 * @return array<int, array{InstanceId: string, PublicIpAddress: string, PrivateIpAddress: string, Hostname: string}>
@@ -168,6 +127,167 @@ final class AwsClient
 		}
 
 		return $instances;
+	}
+
+	/**
+	 * @return array{}|array{VpcId: string, Name: string}
+	 */
+	public function getVpcById(string $vpcId): array
+	{
+		return $this->searchVpc('vpc-id', $vpcId);
+	}
+
+	/**
+	 * @return array{}|array{VpcId: string, Name: string}
+	 */
+	public function getVpcByName(string $vpcName): array
+	{
+		return $this->searchVpc('tag:Name', $vpcName);
+	}
+
+	/**
+	 * Search for an internet gateway
+	 *
+	 * @return array{GatewayId: string, VpcId: string, State: string}
+	 */
+	public function getGatewayById(string $gatewayId): array
+	{
+		$res = $this->client->describeInternetGateways([
+			'Filters' => [
+				[
+					'Name' => 'internet-gateway-id',
+					'Values' => [$gatewayId],
+				],
+			],
+		]);
+
+		/** @var array<array{InternetGatewayId: string, Attachments: array<array{State: string, VpcId: string}>}> $gateways */
+		$gateways = $res->get('InternetGateways');
+		if (count($gateways) !== 1)
+		{
+			throw new LearnomancerException('Got more than 1 internet gateway. Investigate.');
+		}
+
+		$gateway     = $gateways[0];
+		$attachments = $gateway['Attachments'];
+
+		if (count($attachments) !== 1)
+		{
+			throw new LearnomancerException('Internet gateway has more than 1 attachment. Investigate.');
+		}
+
+		return [
+			'GatewayId' => $gateway['InternetGatewayId'],
+			'VpcId' => $attachments[0]['VpcId'],
+			'State' => $attachments[0]['State'],
+		];
+	}
+
+	/**
+	 * Search for route table by ID
+	 *
+	 * @return array{RouteTableId: string, VpcId: string}
+	 */
+	public function getRouteTableById(string $routeTableId): array
+	{
+		$res = $this->client->describeRouteTables([
+			'Filters' => [
+				[
+					'Name' => 'route-table-id',
+					'Values' => [$routeTableId],
+				],
+			],
+		]);
+
+		/** @var array<array{RouteTableId: string, VpcId: string}> $routeTables */
+		$routeTables = $res->get('RouteTables');
+		if (count($routeTables) !== 1)
+		{
+			throw new LearnomancerException('Got more than 1 route table.');
+		}
+
+		return [
+			'RouteTableId' => $routeTables[0]['RouteTableId'],
+			'VpcId' => $routeTables[0]['VpcId'],
+		];
+	}
+
+	/**
+	 * Get network ACL Id
+	 */
+	public function getNetworkAclById(string $vpcId): string
+	{
+		$res = $this->client->describeNetworkAcls([
+			'Filters' => [
+				[
+					'Name' => 'vpc-id',
+					'Values' => [$vpcId],
+				],
+			],
+		]);
+
+		/** @var array{NetworkAclId?: string} $networkacl */
+		$networkacl = $res->get('NetworkAcls');
+		if (count($networkacl) !== 1)
+		{
+			throw new LearnomancerException('Got more than 1 Network ACL. Investigate.');
+		}
+
+		return $networkacl['NetworkAclId'];
+	}
+
+	/**
+	 * Search for subnet with subnet id
+	 *
+	 * @return array{SubnetId: string, VpcId: string}
+	 */
+	public function getSubnetById(string $subnetId): array
+	{
+		// Search for subnet
+		$res = $this->client->describeSubnets([
+			'Filters' => [
+				[
+					'Name' => 'subnet-id',
+					'Values' => [$subnetId],
+				],
+			],
+		]);
+
+		/** @var array<array{SubnetId: string, VpcId: string}> $subnets */
+		$subnets = $res->get('Subnets');
+		if (count($subnets) !== 1)
+		{
+			throw new LearnomancerException('Found something other than 1 subnet. Investigate');
+		}
+
+		return $subnets[0];
+	}
+
+	/**
+	 * Validate, and/or create security group rules. Get the default security group
+	 * for our VPC, and check if it has inbound SSH, http, alt-http, and https
+	 *
+	 * @return SecurityGroup Security group information
+	 */
+	public function getSecurityGroupForVpc(string $vpcId): array
+	{
+		$res = $this->client->describeSecurityGroups([
+			'Filters' => [
+				[
+					'Name' => 'vpc-id',
+					'Values' => [$vpcId],
+				],
+			],
+		]);
+
+		/** @var array<SecurityGroup> $securityGroups */
+		$securityGroups = $res->get('SecurityGroups');
+		if (count($securityGroups) !== 1)
+		{
+			throw new LearnomancerException('Found something other than 1 security group. Investigate.');
+		}
+
+		return $securityGroups[0];
 	}
 
 	/**
@@ -240,25 +360,38 @@ final class AwsClient
 	}
 
 	/**
-	 * Create a VPC with CIDR range, and name
+	 * Delete a subnet
 	 */
-	public function createVpc(string $cidrMask, string $vpcName): string
+	public function deleteSubnet(string $subnetId): void
 	{
-		$res = $this->client->createVpc([
-			'CidrBlock' => $cidrMask,
-			'TagSpecifications' => [
-				[
-					'ResourceType' => 'vpc',
-					'Tags' => $this->getStandardTags($vpcName),
-				],
-			],
+		$this->client->deleteSubnet([
+			'SubnetId' => $subnetId,
+		]);
+	}
+
+	/**
+	 * Delete a route table
+	 */
+	public function deleteRouteTable(string $routeTableId): void
+	{
+		$this->client->deleteRouteTable([
+			'RouteTableId' => $routeTableId,
+		]);
+	}
+
+	/**
+	 * Detach, and delete gateway
+	 */
+	public function deleteGateway(string $vpcId, string $gatewayId): void
+	{
+		$this->client->detachInternetGateway([
+			'VpcId' => $vpcId,
+			'InternetGatewayId' => $gatewayId,
 		]);
 
-		/** @var array{VpcId: string} $vpc */
-		$vpc   = $res->get('Vpc');
-		$vpcId = $vpc['VpcId'];
-
-		return $vpcId;
+		$this->client->deleteInternetGateway([
+			'InternetGatewayId' => $gatewayId,
+		]);
 	}
 
 	/**
@@ -315,19 +448,66 @@ final class AwsClient
 	}
 
 	/**
-	 * @return array{}|array{VpcId: string, Name: string}
+	 * Create a VPC with CIDR range, and name
 	 */
-	public function getVpcById(string $vpcId): array
+	public function createVpc(string $cidrMask, string $vpcName): string
 	{
-		return $this->searchVpc('vpc-id', $vpcId);
+		$res = $this->client->createVpc([
+			'CidrBlock' => $cidrMask,
+			'TagSpecifications' => [
+				[
+					'ResourceType' => 'vpc',
+					'Tags' => $this->getStandardTags($vpcName),
+				],
+			],
+		]);
+
+		/** @var array{VpcId: string} $vpc */
+		$vpc   = $res->get('Vpc');
+		$vpcId = $vpc['VpcId'];
+
+		return $vpcId;
 	}
 
 	/**
-	 * @return array{}|array{VpcId: string, Name: string}
+	 * Create a number of instances using an AMI image in a VPC (ie: subnet)
+	 *
+	 * @return array<string>
 	 */
-	public function getVpcByName(string $vpcName): array
+	public function createInstances(int $count, string $instanceType, string $subnetId, string $ami): array
 	{
-		return $this->searchVpc('tag:Name', $vpcName);
+		$res = $this->client->runInstances([
+			'ImageId' => $ami,
+			'MinCount' => $count,
+			'MaxCount' => $count,
+			'InstanceType' => $instanceType,
+			'CreditSpecification' => [
+				'CpuCredits' => 'unlimited',
+			],
+			'KeyName' => 'Percona-Training',
+			'NetworkInterfaces' => [
+				[
+					'DeviceIndex' => 0,
+					'AssociatePublicIpAddress' => true,
+					'SubnetId' => $subnetId,
+				],
+			],
+			'BlockDeviceMappings' => [
+				[
+					'DeviceName' => '/dev/sda1',
+					'Ebs' => [
+						'VolumeSize' => 100,
+						'DeleteOnTermination' => true,
+						'VolumeType' => 'gp2',
+					],
+				],
+			],
+		]);
+
+		/** @var array<string> $ids */
+		$ids = $res->search('Instances[*].InstanceId');
+
+		return $ids;
 	}
 
 	/**
@@ -396,73 +576,6 @@ final class AwsClient
 	}
 
 	/**
-	 * Search for an internet gateway
-	 *
-	 * @return array{GatewayId: string, VpcId: string, State: string}
-	 */
-	public function getGatewayById(string $gatewayId): array
-	{
-		$res = $this->client->describeInternetGateways([
-			'Filters' => [
-				[
-					'Name' => 'internet-gateway-id',
-					'Values' => [$gatewayId],
-				],
-			],
-		]);
-
-		/** @var array<array{InternetGatewayId: string, Attachments: array<array{State: string, VpcId: string}>}> $gateways */
-		$gateways = $res->get('InternetGateways');
-		if (count($gateways) !== 1)
-		{
-			throw new LearnomancerException('Got more than 1 internet gateway. Investigate.');
-		}
-
-		$gateway     = $gateways[0];
-		$attachments = $gateway['Attachments'];
-
-		if (count($attachments) !== 1)
-		{
-			throw new LearnomancerException('Internet gateway has more than 1 attachment. Investigate.');
-		}
-
-		return [
-			'GatewayId' => $gateway['InternetGatewayId'],
-			'VpcId' => $attachments[0]['VpcId'],
-			'State' => $attachments[0]['State'],
-		];
-	}
-
-	/**
-	 * Search for route table by ID
-	 *
-	 * @return array{RouteTableId: string, VpcId: string}
-	 */
-	public function getRouteTableById(string $routeTableId): array
-	{
-		$res = $this->client->describeRouteTables([
-			'Filters' => [
-				[
-					'Name' => 'route-table-id',
-					'Values' => [$routeTableId],
-				],
-			],
-		]);
-
-		/** @var array<array{RouteTableId: string, VpcId: string}> $routeTables */
-		$routeTables = $res->get('RouteTables');
-		if (count($routeTables) !== 1)
-		{
-			throw new LearnomancerException('Got more than 1 route table.');
-		}
-
-		return [
-			'RouteTableId' => $routeTables[0]['RouteTableId'],
-			'VpcId' => $routeTables[0]['VpcId'],
-		];
-	}
-
-	/**
 	 * Create a routing table
 	 */
 	public function createRouteTableOnVpc(string $vpcId, string $name): string
@@ -485,6 +598,25 @@ final class AwsClient
 		}
 
 		return $routetable['RouteTableId'];
+	}
+
+	/**
+	 * Creates inbound route
+	 */
+	public function createInboundRoute(string $routeTableId, string $gatewayId): bool
+	{
+		$res = $this->client->createRoute([
+			'RouteTableId' => $routeTableId,
+			'DestinationCidrBlock' => '0.0.0.0/0',
+			'GatewayId' => $gatewayId,
+		]);
+
+		if (!(bool)$res->get('Return'))
+		{
+			throw new LearnomancerException('Failed to create inbound route. Investigate.');
+		}
+
+		return true;
 	}
 
 	/**
@@ -512,103 +644,6 @@ final class AwsClient
 			'InternetGatewayId' => $gatewayId,
 			'VpcId' => $vpcId,
 		]);
-	}
-
-	/**
-	 * Get network ACL Id
-	 */
-	public function getNetworkAclById(string $vpcId): string
-	{
-		$res = $this->client->describeNetworkAcls([
-			'Filters' => [
-				[
-					'Name' => 'vpc-id',
-					'Values' => [$vpcId],
-				],
-			],
-		]);
-
-		/** @var array{NetworkAclId?: string} $networkacl */
-		$networkacl = $res->get('NetworkAcls');
-		if (count($networkacl) !== 1)
-		{
-			throw new LearnomancerException('Got more than 1 Network ACL. Investigate.');
-		}
-
-		return $networkacl['NetworkAclId'];
-	}
-
-	/**
-	 * Creates inbound route
-	 */
-	public function createInboundRoute(string $routeTableId, string $gatewayId): bool
-	{
-		$res = $this->client->createRoute([
-			'RouteTableId' => $routeTableId,
-			'DestinationCidrBlock' => '0.0.0.0/0',
-			'GatewayId' => $gatewayId,
-		]);
-
-		if (!(bool)$res->get('Return'))
-		{
-			throw new LearnomancerException('Failed to create inbound route. Investigate.');
-		}
-
-		return true;
-	}
-
-	/**
-	 * Search for subnet with subnet id
-	 *
-	 * @return array{SubnetId: string, VpcId: string}
-	 */
-	public function getSubnetById(string $subnetId): array
-	{
-		// Search for subnet
-		$res = $this->client->describeSubnets([
-			'Filters' => [
-				[
-					'Name' => 'subnet-id',
-					'Values' => [$subnetId],
-				],
-			],
-		]);
-
-		/** @var array<array{SubnetId: string, VpcId: string}> $subnets */
-		$subnets = $res->get('Subnets');
-		if (count($subnets) !== 1)
-		{
-			throw new LearnomancerException('Found something other than 1 subnet. Investigate');
-		}
-
-		return $subnets[0];
-	}
-
-	/**
-	 * Validate, and/or create security group rules. Get the default security group
-	 * for our VPC, and check if it has inbound SSH, http, alt-http, and https
-	 *
-	 * @return SecurityGroup Security group information
-	 */
-	public function getSecurityGroupForVpc(string $vpcId): array
-	{
-		$res = $this->client->describeSecurityGroups([
-			'Filters' => [
-				[
-					'Name' => 'vpc-id',
-					'Values' => [$vpcId],
-				],
-			],
-		]);
-
-		/** @var array<SecurityGroup> $securityGroups */
-		$securityGroups = $res->get('SecurityGroups');
-		if (count($securityGroups) !== 1)
-		{
-			throw new LearnomancerException('Found something other than 1 security group. Investigate.');
-		}
-
-		return $securityGroups[0];
 	}
 
 	/**
