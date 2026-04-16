@@ -7,6 +7,7 @@ use Cake\Console\Arguments;
 use Cake\Console\BaseCommand;
 use Cake\Console\ConsoleIo;
 use Cake\Console\ConsoleOptionParser;
+use Exception;
 use Learnomancer;
 
 class ListInstancesCommand extends BaseCommand
@@ -27,6 +28,8 @@ class ListInstancesCommand extends BaseCommand
 			],
 		]);
 
+		$parser->removeOption('verbose')->removeOption('quiet');
+
 		return $parser;
 	}
 
@@ -39,23 +42,32 @@ class ListInstancesCommand extends BaseCommand
 		$slug   = $args->getArgument('slug') ?: $io->abort('Missing slug parameter');
 		$region = $args->getArgument('region') ?: $io->abort('Missing region parameter');
 
-		$ec2          = new Learnomancer\AwsClient($region);
-		$reservations = $ec2->getInstancesBySlug($slug);
-
-		if (empty($reservations))
+		try
 		{
-			$io->warning("! No instances found for '{$slug}' in '{$region}'\n");
+			$ec2          = new Learnomancer\AwsClient($region);
+			$reservations = $ec2->getInstancesBySlug($slug);
 
-			return static::CODE_SUCCESS;
+			if (empty($reservations))
+			{
+				$io->warning("! No instances found for '{$slug}' in '{$region}'\n");
+
+				return static::CODE_SUCCESS;
+			}
+
+			$frontLength = strlen("Percona-Training-{$slug}-");
+
+			foreach ($reservations as $instance)
+			{
+				$fullName     = $instance['Hostname'];
+				$typeTeamName = substr($fullName, $frontLength);
+				$io->out(sprintf('%-15s %-30s %-10s', $instance['PublicIpAddress'], $fullName, $typeTeamName));
+			}
 		}
-
-		$frontLength = strlen("Percona-Training-{$slug}-");
-
-		foreach ($reservations as $instance)
+		catch (Learnomancer\LearnomancerException | Exception $e)
 		{
-			$fullName     = $instance['Hostname'];
-			$typeTeamName = substr($fullName, $frontLength);
-			$io->out(sprintf('%-15s %-30s %-10s', $instance['PublicIpAddress'], $fullName, $typeTeamName));
+			$io->error("** Unable to create VPC: {$e->getMessage()}**");
+
+			return static::CODE_ERROR;
 		}
 
 		return static::CODE_SUCCESS;

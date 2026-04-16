@@ -83,6 +83,8 @@ class CreateInstancesCommand extends BaseCommand
 			],
 		]);
 
+		$parser->removeOption('verbose')->removeOption('quiet');
+
 		return $parser;
 	}
 
@@ -113,7 +115,7 @@ class CreateInstancesCommand extends BaseCommand
 		}
 		catch (Learnomancer\LearnomancerException | Exception $e)
 		{
-			$io->error($e->getMessage());
+			$io->error("!! Failed to load config: {$e->getMessage()} !!");
 
 			return static::CODE_ERROR;
 		}
@@ -151,7 +153,7 @@ class CreateInstancesCommand extends BaseCommand
 				$ids         = $ec2->createInstances($count, $instanceType, $config->subnetId, $ami);
 				$instanceIds = array_merge($instanceIds, $ids);
 			}
-			catch (Exception $e)
+			catch (Learnomancer\LearnomancerException | Exception $e)
 			{
 				$io->abort("** Unable to create instances: {$e->getMessage()} **");
 			}
@@ -166,49 +168,58 @@ class CreateInstancesCommand extends BaseCommand
 
 		$io->out('-- Waiting until instances are running (may take up to 30s+)...');
 
-		// phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter
-		$ec2->waitForRunningInstances($instanceIds, function (CommandInterface $c, int $attempts) use ($io): void {
-			$io->out("-- ... waiting ... (Attempt {$attempts})");
-		});
-
-		// loop over machine types so that teamIds get reset for each type
-		$instanceList = $instanceIds;
-
-		for ($teamCounter = $offset + 1; $teamCounter <= $count + $offset; $teamCounter++)
+		try
 		{
-			foreach ($machines as $machine)
+			// phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter
+			$ec2->waitForRunningInstances($instanceIds, function (CommandInterface $c, int $attempts) use ($io): void {
+				$io->out("-- ... waiting ... (Attempt {$attempts})");
+			});
+
+			// loop over machine types so that teamIds get reset for each type
+			$instanceList = $instanceIds;
+
+			for ($teamCounter = $offset + 1; $teamCounter <= $count + $offset; $teamCounter++)
 			{
-				// @var string $instanceId
-				$instanceId = array_pop($instanceList);
-				if ($instanceId === null)
+				foreach ($machines as $machine)
 				{
-					$io->abort('Could not pop instance from list.');
+					// @var string $instanceId
+					$instanceId = array_pop($instanceList);
+					if ($instanceId === null)
+					{
+						$io->abort('Could not pop instance from list.');
+					}
+
+					$tag = "Percona-Training-{$slug}-{$machine}-T{$teamCounter}";
+
+					// scoreboard is always team 0
+					if ($machine == 'scoreboard')
+					{
+						$tag = "Percona-Training-{$slug}-{$machine}-T0";
+					}
+
+					$ec2->tagEntity($instanceId, 'Name', $tag);
+					$ec2->tagEntity($instanceId, 'TrainingEndDate', date('Y-m-d', strtotime('+7 days')));
 				}
-
-				$tag = "Percona-Training-{$slug}-{$machine}-T{$teamCounter}";
-
-				// scoreboard is always team 0
-				if ($machine == 'scoreboard')
-				{
-					$tag = "Percona-Training-{$slug}-{$machine}-T0";
-				}
-
-				$ec2->tagEntity($instanceId, 'Name', $tag);
-				$ec2->tagEntity($instanceId, 'TrainingEndDate', date('Y-m-d', strtotime('+7 days')));
 			}
+
+			$io->success('Instances are running.');
+
+			// Now that the instances are running, we can get their IPs
+			// and add them to dynamo
+			//
+			// Add instances to dynamo table
+			$io->out('-- Adding cluster info to Dynamo...');
+
+			$this->executeCommand(SyncDynamoCommand::class, [$slug, $region]);
+
+			$io->out('-- Done Adding Instances');
 		}
+		catch (Learnomancer\LearnomancerException | Exception $e)
+		{
+			$io->error("** Error waiting on instances: {$e->getMessage()}**");
 
-		$io->success('Instances are running.');
-
-		// Now that the instances are running, we can get their IPs
-		// and add them to dynamo
-		//
-		// Add instances to dynamo table
-		$io->out('-- Adding cluster info to Dynamo...');
-
-		$this->executeCommand(SyncDynamoCommand::class, [$slug, $region]);
-
-		$io->out('-- Done Adding Instances');
+			return static::CODE_ERROR;
+		}
 
 		return static::CODE_SUCCESS;
 	}

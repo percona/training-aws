@@ -7,6 +7,7 @@ use Cake\Console\Arguments;
 use Cake\Console\BaseCommand;
 use Cake\Console\ConsoleIo;
 use Cake\Console\ConsoleOptionParser;
+use Exception;
 use Learnomancer;
 
 class ListAmisCommand extends BaseCommand
@@ -23,6 +24,8 @@ class ListAmisCommand extends BaseCommand
 			],
 		]);
 
+		$parser->removeOption('verbose')->removeOption('quiet');
+
 		return $parser;
 	}
 
@@ -34,29 +37,38 @@ class ListAmisCommand extends BaseCommand
 		// Validate options
 		$region = $args->getArgument('region') ?: $io->abort('Missing region parameter');
 
-		$ec2  = new Learnomancer\AwsClient($region);
-		$amis = $ec2->listAmis();
-
-		if (empty($amis))
+		try
 		{
-			$io->warning("! No training AMIs found in '{$region}'\n");
+			$ec2  = new Learnomancer\AwsClient($region);
+			$amis = $ec2->listAmis();
 
-			return static::CODE_SUCCESS;
+			if (empty($amis))
+			{
+				$io->warning("! No training AMIs found in '{$region}'\n");
+
+				return static::CODE_SUCCESS;
+			}
+
+			// Display
+			$io->out();
+			$io->out(str_repeat('-', 31) . '+' . str_repeat('-', 24));
+			$io->out(sprintf('%-30s | %s', 'Name', 'AMI Id'));
+			$io->out(str_repeat('-', 31) . '+' . str_repeat('-', 24));
+
+			foreach ($amis as $ami)
+			{
+				$name = $ami['Name'] ?: '-- None --';
+				$io->out(sprintf('%-30s | %s', $name, $ami['ImageId']));
+			}
+
+			$io->out(str_repeat('-', 31) . '+' . str_repeat('-', 24));
 		}
-
-		// Display
-		$io->out();
-		$io->out(str_repeat('-', 31) . '+' . str_repeat('-', 24));
-		$io->out(sprintf('%-30s | %s', 'Name', 'AMI Id'));
-		$io->out(str_repeat('-', 31) . '+' . str_repeat('-', 24));
-
-		foreach ($amis as $ami)
+		catch (Learnomancer\LearnomancerException | Exception $e)
 		{
-			$name = $ami['Name'] ?: '-- None --';
-			$io->out(sprintf('%-30s | %s', $name, $ami['ImageId']));
-		}
+			$io->error("** Unable to list AMIs: {$e->getMessage()} **");
 
-		$io->out(str_repeat('-', 31) . '+' . str_repeat('-', 24));
+			return static::CODE_ERROR;
+		}
 
 		return static::CODE_SUCCESS;
 	}

@@ -43,6 +43,8 @@ class CreateVpcCommand extends BaseCommand
 			],
 		]);
 
+		$parser->removeOption('verbose')->removeOption('quiet');
+
 		return $parser;
 	}
 
@@ -239,7 +241,7 @@ class CreateVpcCommand extends BaseCommand
 
 			$io->success('!! All done. VPC created. !!');
 		}
-		catch(Learnomancer\LearnomancerException | Exception $e)
+		catch (Learnomancer\LearnomancerException | Exception $e)
 		{
 			$io->error("** Unable to create VPC: {$e->getMessage()}**");
 

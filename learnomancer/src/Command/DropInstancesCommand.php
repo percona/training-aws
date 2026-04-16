@@ -28,6 +28,8 @@ class DropInstancesCommand extends BaseCommand
 			],
 		]);
 
+		$parser->removeOption('verbose')->removeOption('quiet');
+
 		return $parser;
 	}
 
@@ -40,41 +42,42 @@ class DropInstancesCommand extends BaseCommand
 		$slug   = $args->getArgument('slug') ?: $io->abort('Missing slug parameter');
 		$region = $args->getArgument('region') ?: $io->abort('Missing region parameter');
 
-		$ec2          = new Learnomancer\AwsClient($region);
-		$reservations = $ec2->getInstancesBySlug($slug);
-
-		$instanceIds   = [];
-		$instanceNames = [];
-		$frontLength   = strlen('Percona-Training-');
-
-		if (empty($reservations))
+		try
 		{
-			$io->warning("! No instances found for '{$slug}' in '{$region}'");
+			$ec2          = new Learnomancer\AwsClient($region);
+			$reservations = $ec2->getInstancesBySlug($slug);
 
-			return static::CODE_SUCCESS;
-		}
+			$instanceIds   = [];
+			$instanceNames = [];
+			$frontLength   = strlen('Percona-Training-');
 
-		$io->out('The following instances were found:');
+			if (empty($reservations))
+			{
+				$io->warning("! No instances found for '{$slug}' in '{$region}'");
 
-		foreach ($reservations as $instance)
-		{
-			$instanceIds[] = $instance['InstanceId'];
+				return static::CODE_SUCCESS;
+			}
 
-			[$teamTag, , $teamId] = explode('-', substr($instance['Hostname'], $frontLength));
-			$instanceNames[]      = sprintf('%s-%d', strtolower($teamTag), substr($teamId, 1));
+			$io->out('The following instances were found:');
 
-			$io->out(sprintf('-- %s - %s', $instance['InstanceId'], $instance['Hostname']));
-		}
+			foreach ($reservations as $instance)
+			{
+				$instanceIds[] = $instance['InstanceId'];
 
-		// Make a choice
-		$resp = $io->askChoice('Confirm to STOP AND TERMINATE/DROP:', ['Y', 'N'], 'N');
-		if (strtolower($resp) !== 'y')
-		{
-			$io->error('-- DROP INSTANCES CANCELED --');
-			$this->abort();
-		}
+				[$teamTag, , $teamId] = explode('-', substr($instance['Hostname'], $frontLength));
+				$instanceNames[]      = sprintf('%s-%d', strtolower($teamTag), substr($teamId, 1));
 
-		try {
+				$io->out(sprintf('-- %s - %s', $instance['InstanceId'], $instance['Hostname']));
+			}
+
+			// Make a choice
+			$resp = $io->askChoice('Confirm to STOP AND TERMINATE/DROP:', ['Y', 'N'], 'N');
+			if (strtolower($resp) !== 'y')
+			{
+				$io->error('-- DROP INSTANCES CANCELED --');
+				$this->abort();
+			}
+
 			$io->out('- Terminating...');
 			$ec2->terminateInstancesById($instanceIds);
 
@@ -86,9 +89,9 @@ class DropInstancesCommand extends BaseCommand
 			$io->out('- Removing instances from DynamoDB...');
 			Learnomancer\DynamoDbClient::deleteFromDynamo($instanceNames);
 		}
-		catch (Exception $e)
+		catch (Learnomancer\LearnomancerException | Exception $e)
 		{
-			$io->error("** Unknown Error: {$e->getMessage()} **");
+			$io->error("** Unable to drop instances: {$e->getMessage()}**");
 
 			return static::CODE_ERROR;
 		}

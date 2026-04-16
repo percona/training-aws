@@ -28,6 +28,8 @@ class SyncDynamoCommand extends BaseCommand
 			],
 		]);
 
+		$parser->removeOption('verbose')->removeOption('quiet');
+
 		return $parser;
 	}
 
@@ -36,12 +38,12 @@ class SyncDynamoCommand extends BaseCommand
 	 */
 	public function execute(Arguments $args, ConsoleIo $io): ?int
 	{
+		// Validate options
+		$slug   = $args->getArgument('slug') ?: $io->abort('Missing slug parameter');
+		$region = $args->getArgument('region') ?: $io->abort('Missing region parameter');
+
 		try
 		{
-			// Validate options
-			$slug   = $args->getArgument('slug') ?: $io->abort('Missing slug parameter');
-			$region = $args->getArgument('region') ?: $io->abort('Missing region parameter');
-
 			$ec2          = new Learnomancer\AwsClient($region);
 			$reservations = $ec2->getInstancesBySlug($slug);
 
@@ -91,7 +93,7 @@ class SyncDynamoCommand extends BaseCommand
 				}
 			}
 		}
-		catch (Exception $e)
+		catch (Learnomancer\LearnomancerException | Exception $e)
 		{
 			$io->error('** UNABLE TO SAVE TO DYNAMO **');
 			$io->error("** Unknown Error: {$e->getMessage()} **");
