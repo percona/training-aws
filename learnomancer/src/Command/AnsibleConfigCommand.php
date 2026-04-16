@@ -55,14 +55,22 @@ class AnsibleConfigCommand extends BaseCommand
 
 			if (empty($reservations))
 			{
-				$io->warning("! No instances found for '{$slug}' in '{$region}'\n");
+				$io->warning("!! No instances found for '{$slug}' in '{$region}' !!\n");
 
 				return static::CODE_SUCCESS;
 			}
 
 			$frontLength = strlen("Percona-Training-{$slug}-");
 
-			// @var array{machinetype: array<string, array<string>>, team: array<string, array<string>>, all: array<string>, privateip: array<string, string>, publicip: array<string, string>} $instances
+			/**
+			 * @var array{
+			 *		machinetype?: array<string, array<string>>,
+			 *		team?: array<string, array<string>>,
+			 *		all?: array<string>,
+			 *		privateip?: array<string, string>,
+			 *		publicip?: array<string, string>,
+			 *	} $instances
+			 */
 			$instances = [];
 			foreach ($reservations as $instance)
 			{

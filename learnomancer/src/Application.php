@@ -50,11 +50,14 @@ final class Application implements ConsoleApplicationInterface
 	public function console(CommandCollection $commands): CommandCollection
 	{
 		$commands->add('list-instances', Command\ListInstancesCommand::class);
-		$commands->add('ansible-config', Command\AnsibleConfigCommand::class);
-		$commands->add('drop-instances', Command\DropInstancesCommand::class);
 		$commands->add('list-amis', Command\ListAmisCommand::class);
+
+		$commands->add('ansible-config', Command\AnsibleConfigCommand::class);
+		$commands->add('ssh-config', Command\SshConfigCommand::class);
 		$commands->add('sync-dynamo', Command\SyncDynamoCommand::class);
+
 		$commands->add('create-instances', Command\CreateInstancesCommand::class);
+		$commands->add('drop-instances', Command\DropInstancesCommand::class);
 
 		$commands->add('create-vpc', Command\CreateVpcCommand::class);
 		$commands->add('drop-vpc', Command\DropVpcCommand::class);
