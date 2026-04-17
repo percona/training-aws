@@ -79,7 +79,7 @@ class CreateInstancesCommand extends BaseCommand
 			'ami' => [
 				'short' => 'i',
 				'help' => 'The AMI to use. Use list-instances to get a list',
-				'default' => 'i-xxxxxx',
+				'default' => 'ami-xxxxxx',
 			],
 		]);
 
@@ -127,6 +127,7 @@ class CreateInstancesCommand extends BaseCommand
 		}
 
 		$ec2 = new Learnomancer\AwsClient($region);
+		$ec2->loadUser();
 
 		// @var array<string> $instanceIds
 		$instanceIds = [];
@@ -138,18 +139,14 @@ class CreateInstancesCommand extends BaseCommand
 			$io->abort('Could not parse machine type argument.');
 		}
 
+		// Loop over each machine type, and launch them as a group
 		foreach ($machines as $machine)
 		{
-			$instanceType = 't3.large';
-			switch ($machine)
-			{
-				case 'app':
-					$instanceType = 't3.xlarge';
-					break;
-				case 'node1':
-					$instanceType = 't3.2xlarge';
-					break;
-			}
+			$instanceType = match ($machine) {
+				'app'   => 't3.xlarge',
+				'node1' => 't3.2xlarge',
+				default => 't3.large',
+			};
 
 			try
 			{
@@ -165,22 +162,40 @@ class CreateInstancesCommand extends BaseCommand
 			}
 		}
 
-		// Get all the instance Ids of what we are launching
 		$io->out('-- Created the following instances:');
-		$tableHelper->output($instanceIds);
 
+		/**
+		 * Output of instance ids. The table helper needs an array-of-arrays.
+		 * The reduce function turns our 1-dimension array of ids into a
+		 * 2-dimensional array-of-arrays.
+		 *
+		 * @var array<array<string>> $tableData
+		 */
+		$tableData = array_reduce(
+			$instanceIds,
+			function (array $carry, string $item) {
+				$carry[] = [$item];
+
+				return $carry;
+			},
+			[['InstanceIDs']],
+		);
+		$tableHelper->output($tableData);
+
+		// Wait for the instances to be in ready state
 		$io->out('-- Waiting until instances are running (may take up to 30s+)...');
+
+		$progressHelper->init([
+			'total' => 30,
+			'width' => 40,
+		]);
 
 		try
 		{
-			$progressHelper->init([
-				'total' => 10,
-				'width' => 40,
-			]);
-
 			// phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter
-			$ec2->waitForRunningInstances($instanceIds, function (CommandInterface $c, int $attempts) use ($io): void {
-				$io->out("-- ... waiting ... (Attempt {$attempts})");
+			$ec2->waitForRunningInstances($instanceIds, function (CommandInterface $c, int $attempts) use ($progressHelper): void {
+				$progressHelper->increment($attempts * 2);
+				$progressHelper->draw();
 			});
 
 			// loop over machine types so that teamIds get reset for each type
@@ -197,16 +212,15 @@ class CreateInstancesCommand extends BaseCommand
 						$io->abort('Could not pop instance from list.');
 					}
 
-					$tag = "Percona-Training-{$slug}-{$machine}-T{$teamCounter}";
+					$name = "Percona-Training-{$slug}-{$machine}-T{$teamCounter}";
 
 					// scoreboard is always team 0
 					if ($machine == 'scoreboard')
 					{
-						$tag = "Percona-Training-{$slug}-{$machine}-T0";
+						$name = "Percona-Training-{$slug}-{$machine}-T0";
 					}
 
-					$ec2->tagEntity($instanceId, 'Name', $tag);
-					$ec2->tagEntity($instanceId, 'TrainingEndDate', date('Y-m-d', strtotime('+7 days')));
+					$ec2->addTagsToEntity($instanceId, $ec2->getStandardTags($name));
 				}
 			}
 
@@ -238,7 +252,7 @@ class CreateInstancesCommand extends BaseCommand
 	private function validateOptionAmi(string $ami, string $region, ConsoleIo $io): void
 	{
 		// AMI is required
-		if ($ami === 'i-xxxxxx' || empty($ami))
+		if ($ami === 'ami-xxxxxx' || empty($ami))
 		{
 			$io->error("Available AMIs in {$region}:");
 			$this->executeCommand(ListAmisCommand::class, [$region]);

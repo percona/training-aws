@@ -111,6 +111,8 @@ class DropVpcCommand extends BaseCommand
 
 			// Delete VPC
 			$ec2->deleteVpc($vpcId);
+			$config->save(saveEmpty: true);
+
 			$io->success("!! VPC '{$vpcName}' ({$vpcId}) deleted !!");
 		}
 		catch (Learnomancer\LearnomancerException | Exception $e)

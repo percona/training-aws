@@ -325,7 +325,9 @@ final class AwsClient
 		$this->client->waitUntil('InstanceRunning', [
 			'InstanceIds' => $instanceIds,
 			'@waiter' => [
-				'initDelay' => 10,
+				'initDelay' => 2,
+				'delay' => 2,
+				'maxAttempts' => 15,
 				'before' => $cb,
 			],
 		]);
@@ -671,9 +673,9 @@ final class AwsClient
 	/**
 	 * Returns array of standard tags
 	 *
-	 * @return array<array<string, string>>
+	 * @return array<array{Key: string, Value: string}>
 	 */
-	private function getStandardTags(string $name): array
+	public function getStandardTags(string $name): array
 	{
 		return [
 			[
@@ -696,20 +698,31 @@ final class AwsClient
 	}
 
 	/**
-	 * Apply tags to the entity
+	 * Apply a single tag to an entity
 	 */
-	public function tagEntity(string $entity, string $key, string $value): void
+	public function addTagToEntity(string $entity, string $key, string $value): void
 	{
 		$this->client->createTags([
-			'Resources' => [
-				$entity,
-			],
+			'Resources' => [$entity],
 			'Tags' => [
 				[
 					'Key' => $key,
 					'Value' => $value,
 				],
 			],
+		]);
+	}
+
+	/**
+	 * Apply multiple tags to an entity
+	 *
+	 * @param array<array{Key: string, Value: string}> $tags
+	 */
+	public function addTagsToEntity(string $entity, array $tags): void
+	{
+		$this->client->createTags([
+			'Resources' => [$entity],
+			'Tags' => $tags,
 		]);
 	}
 }

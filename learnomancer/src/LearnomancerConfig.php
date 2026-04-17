@@ -85,13 +85,15 @@ final class LearnomancerConfig
 	}
 
 	/**
-	 * Encode and persist the config to disk
+	 * Encode, and persist the config to disk
 	 */
-	public function save(): bool
+	public function save(bool $saveEmpty = false): bool
 	{
 		$configFile = self::getConfigFile($this->slug, $this->region);
 
-		return file_put_contents($configFile, json_encode($this)) !== false;
+		$encoded = $saveEmpty ? '{}' : json_encode($this);
+
+		return file_put_contents($configFile, $encoded) !== false;
 	}
 
 	/**

@@ -59,7 +59,7 @@ class CreateClassCommand extends BaseCommand
 			'ami' => [
 				'required' => true,
 				'help' => 'The AMI to use. Use list-amis to get a list',
-				'default' => 'i-xxxxxx',
+				'default' => 'ami-xxxxxx',
 			],
 		]);
 
