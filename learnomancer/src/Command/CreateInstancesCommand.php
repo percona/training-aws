@@ -112,6 +112,12 @@ class CreateInstancesCommand extends BaseCommand
 		{
 			$config = new Learnomancer\LearnomancerConfig($slug, $region);
 			$config->load();
+
+			/** @var \Learnomancer\Command\Helper\TableHelper $tableHelper */
+			$tableHelper = $io->helper('Learnomancer\Command\Helper\TableHelper');
+
+			/** @var \Learnomancer\Command\Helper\ProgressHelper $progressHelper */
+			$progressHelper = $io->helper('Learnomancer\Command\Helper\ProgressHelper');
 		}
 		catch (Learnomancer\LearnomancerException | Exception $e)
 		{
@@ -150,7 +156,7 @@ class CreateInstancesCommand extends BaseCommand
 				$io->out("-- Launching {$count} instances of type '{$machine}'");
 
 				// @var array<string> $ids
-				$ids         = $ec2->createInstances($count, $instanceType, $config->subnetId, $ami);
+				$ids         = $ec2->createInstances($instanceType, $config->subnetId, $count, $ami);
 				$instanceIds = array_merge($instanceIds, $ids);
 			}
 			catch (Learnomancer\LearnomancerException | Exception $e)
@@ -161,15 +167,17 @@ class CreateInstancesCommand extends BaseCommand
 
 		// Get all the instance Ids of what we are launching
 		$io->out('-- Created the following instances:');
-		foreach ($instanceIds as $instance)
-		{
-			$io->out("--- {$instance}");
-		}
+		$tableHelper->output($instanceIds);
 
 		$io->out('-- Waiting until instances are running (may take up to 30s+)...');
 
 		try
 		{
+			$progressHelper->init([
+				'total' => 10,
+				'width' => 40,
+			]);
+
 			// phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter
 			$ec2->waitForRunningInstances($instanceIds, function (CommandInterface $c, int $attempts) use ($io): void {
 				$io->out("-- ... waiting ... (Attempt {$attempts})");

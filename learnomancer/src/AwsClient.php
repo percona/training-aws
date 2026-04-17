@@ -474,7 +474,7 @@ final class AwsClient
 	 *
 	 * @return array<string>
 	 */
-	public function createInstances(int $count, string $instanceType, string $subnetId, string $ami): array
+	public function createInstances(string $instanceType, string $subnetId, int $count, string $ami): array
 	{
 		$res = $this->client->runInstances([
 			'ImageId' => $ami,

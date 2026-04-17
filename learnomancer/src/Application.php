@@ -57,7 +57,7 @@ final class Application implements ConsoleApplicationInterface
 		$commands->add('sync-dynamo', Command\SyncDynamoCommand::class);
 		$commands->add('summary', Command\ClassSummaryCommand::class);
 
-		$commands->add('create-class', Command\CreateInstancesCommand::class); // Alias
+		$commands->add('create-class', Command\CreateClassCommand::class);
 		$commands->add('create-instances', Command\CreateInstancesCommand::class);
 		$commands->add('drop-instances', Command\DropInstancesCommand::class);
 

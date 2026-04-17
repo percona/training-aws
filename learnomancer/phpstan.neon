@@ -2,3 +2,6 @@ parameters:
     level: 10
     paths:
         - src/
+    excludePaths:
+        - src/Command/Helper/TableHelper.php
+        - src/Command/Helper/ProgressHelper.php

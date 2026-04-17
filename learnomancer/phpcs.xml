@@ -5,6 +5,9 @@
 	<!-- Files, and paths to process //-->
 	<file>src/</file>
 
+	<!-- Ignore Helpers from Cake-core //-->
+	<exclude-pattern>src/Command/Helper/*</exclude-pattern>
+
 	<config name="installed_paths" value="vendor/cakephp/cakephp-codesniffer,vendor/slevomat/coding-standard"/>
 
 	<arg name="tab-width" value="4"/>
