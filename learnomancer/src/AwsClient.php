@@ -72,19 +72,30 @@ final class AwsClient
 	/**
 	 * Searches for, and returns any instances matching the slug pattern
 	 *
+	 * @param  array<string> $stateFilters
 	 * @return array<int, array{InstanceId: string, PublicIpAddress: string, PrivateIpAddress: string, Hostname: string}>
 	 */
-	public function getInstancesBySlug(string $slug): array
+	public function getInstancesBySlug(string $slug, ?array $stateFilters = []): array
 	{
 		$fTag = "Percona-Training-{$slug}-*";
 
-		$res = $this->client->describeInstances([
-			'Filters' => [
-				[
-					'Name' => 'tag:Name',
-					'Values' => [$fTag],
-				],
+		$filters = [
+			[
+				'Name' => 'tag:Name',
+				'Values' => [$fTag],
 			],
+		];
+
+		if (!empty($stateFilters))
+		{
+			$filters[] = [
+				'Name' => 'instance-state-name',
+				'Values' => $stateFilters,
+			];
+		}
+
+		$res = $this->client->describeInstances([
+			'Filters' => $filters,
 		]);
 
 		/**
@@ -307,10 +318,16 @@ final class AwsClient
 	 *
 	 * @param array<string> $instanceIds
 	 */
-	public function waitForTerminatedInstances(array $instanceIds): void
+	public function waitForTerminatedInstances(array $instanceIds, callable $cb): void
 	{
 		$this->client->waitUntil('InstanceTerminated', [
 			'InstanceIds' => $instanceIds,
+			'@waiter' => [
+				'initDelay' => 5,
+				'delay' => 5,
+				'maxAttempts' => 30,
+				'before' => $cb,
+			],
 		]);
 	}
 
@@ -325,9 +342,9 @@ final class AwsClient
 		$this->client->waitUntil('InstanceRunning', [
 			'InstanceIds' => $instanceIds,
 			'@waiter' => [
-				'initDelay' => 2,
-				'delay' => 2,
-				'maxAttempts' => 15,
+				'initDelay' => 5,
+				'delay' => 5,
+				'maxAttempts' => 30,
 				'before' => $cb,
 			],
 		]);

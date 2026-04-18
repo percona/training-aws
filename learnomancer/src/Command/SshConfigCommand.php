@@ -56,7 +56,7 @@ class SshConfigCommand extends BaseCommand
 		try
 		{
 			$ec2          = new Learnomancer\AwsClient($region);
-			$reservations = $ec2->getInstancesBySlug($slug);
+			$reservations = $ec2->getInstancesBySlug($slug, stateFilters: ['pending', 'running']);
 
 			if (empty($reservations))
 			{

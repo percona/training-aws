@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace Learnomancer\Command;
 
+use Aws\CommandInterface;
 use Cake\Console\Arguments;
 use Cake\Console\BaseCommand;
 use Cake\Console\ConsoleIo;
@@ -42,6 +43,12 @@ class DropInstancesCommand extends BaseCommand
 		$slug   = $args->getArgument('slug') ?: $io->abort('Missing slug parameter');
 		$region = $args->getArgument('region') ?: $io->abort('Missing region parameter');
 
+		/** @var \Learnomancer\Command\Helper\TableHelper $tableHelper */
+		$tableHelper = $io->helper('Learnomancer\Command\Helper\TableHelper');
+
+		/** @var \Learnomancer\Command\Helper\ProgressHelper $progressHelper */
+		$progressHelper = $io->helper('Learnomancer\Command\Helper\ProgressHelper');
+
 		try
 		{
 			$ec2          = new Learnomancer\AwsClient($region);
@@ -49,6 +56,7 @@ class DropInstancesCommand extends BaseCommand
 
 			$instanceIds   = [];
 			$instanceNames = [];
+			$tableData     = [['InstanceID', 'Hostname']];
 			$frontLength   = strlen('Percona-Training-');
 
 			if (empty($reservations))
@@ -58,31 +66,51 @@ class DropInstancesCommand extends BaseCommand
 				return static::CODE_SUCCESS;
 			}
 
-			$io->out('The following instances were found:');
-
 			foreach ($reservations as $instance)
 			{
+				// For confirmation output
+				$tableData[] = [$instance['InstanceId'], $instance['Hostname']];
+
+				// For terminating instances
 				$instanceIds[] = $instance['InstanceId'];
 
+				// Removing from DynamoDB
 				[$teamTag, , $teamId] = explode('-', substr($instance['Hostname'], $frontLength));
 				$instanceNames[]      = sprintf('%s-%d', strtolower($teamTag), substr($teamId, 1));
-
-				$io->out(sprintf('-- %s - %s', $instance['InstanceId'], $instance['Hostname']));
 			}
+
+			$io->out("The following instances were found for {$slug} in '{$region}':");
+			$tableHelper->output($tableData);
 
 			// Make a choice
 			$resp = $io->askChoice('Confirm to STOP AND TERMINATE/DROP:', ['Y', 'N'], 'N');
 			if (strtolower($resp) !== 'y')
 			{
 				$io->error('-- DROP INSTANCES CANCELED --');
-				$this->abort();
+
+				return CODE_ABORT;
 			}
 
-			$io->out('- Terminating...');
+			$io->out('- Terminating instances...');
 			$ec2->terminateInstancesById($instanceIds);
 
 			$io->out('- Waiting for termination confirmation...');
-			$ec2->waitForTerminatedInstances($instanceIds);
+
+			$progressHelper->init([
+				'total' => 60,
+				'width' => 40,
+			]);
+
+			// phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter
+			$ec2->waitForTerminatedInstances($instanceIds, function (CommandInterface $c, int $attempts) use ($progressHelper): void {
+				$progressHelper->increment($attempts * 2);
+				$progressHelper->draw();
+			});
+
+			// Set progress 100%
+			$progressHelper->increment(60);
+			$progressHelper->draw();
+			$io->out('');
 
 			$io->out('- Instances have been terminated. They may still be visable for up to 1 hour in the console/API.');
 

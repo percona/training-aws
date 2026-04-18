@@ -99,6 +99,13 @@ class CreateClassCommand extends BaseCommand
 			default     => $io->abort('!! Invalid option for class !!'),
 		};
 
+		// Create the VPC
+		$res = $this->executeCommand(CreateVpcCommand::class, [$slug, $region], $io);
+		if ($res !== static::CODE_SUCCESS)
+		{
+			$io->abort('!! Error creating VPC for class. See above error message !!');
+		}
+
 		// Call the create-instances command
 		$res = $this->executeCommand(CreateInstancesCommand::class, [
 			$slug,
@@ -117,6 +124,9 @@ class CreateClassCommand extends BaseCommand
 		{
 			$io->abort('!! Error - See above error message !!');
 		}
+
+		$this->executeCommand(SshConfigCommand::class, [$slug, $region, '--output'], $io);
+		$this->executeCommand(AnsibleConfigCommand::class, [$slug, $region, '--output'], $io);
 
 		$io->success('!! Class Created !!');
 

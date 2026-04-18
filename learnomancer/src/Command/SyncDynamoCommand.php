@@ -45,7 +45,7 @@ class SyncDynamoCommand extends BaseCommand
 		try
 		{
 			$ec2          = new Learnomancer\AwsClient($region);
-			$reservations = $ec2->getInstancesBySlug($slug);
+			$reservations = $ec2->getInstancesBySlug($slug, stateFilters: ['running']);
 
 			if (empty($reservations))
 			{

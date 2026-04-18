@@ -186,7 +186,7 @@ class CreateInstancesCommand extends BaseCommand
 		$io->out('-- Waiting until instances are running (may take up to 30s+)...');
 
 		$progressHelper->init([
-			'total' => 30,
+			'total' => 60,
 			'width' => 40,
 		]);
 
@@ -197,6 +197,11 @@ class CreateInstancesCommand extends BaseCommand
 				$progressHelper->increment($attempts * 2);
 				$progressHelper->draw();
 			});
+
+			// Set progress 100%
+			$progressHelper->increment(60);
+			$progressHelper->draw();
+			$io->out('');
 
 			// loop over machine types so that teamIds get reset for each type
 			$instanceList = $instanceIds;

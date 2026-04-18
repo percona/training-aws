@@ -19,6 +19,8 @@ define('ROOT', dirname(__DIR__));
  */
 define('CONFIG', ROOT . DS . 'config' . DS);
 
+define('CODE_ABORT', 3);
+
 final class Application implements ConsoleApplicationInterface
 {
 	/**
@@ -58,6 +60,7 @@ final class Application implements ConsoleApplicationInterface
 		$commands->add('summary', Command\ClassSummaryCommand::class);
 
 		$commands->add('create-class', Command\CreateClassCommand::class);
+		$commands->add('drop-class', Command\DropClassCommand::class);
 		$commands->add('create-instances', Command\CreateInstancesCommand::class);
 		$commands->add('drop-instances', Command\DropInstancesCommand::class);
 
