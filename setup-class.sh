@@ -13,6 +13,7 @@ if [ -z "$CLASS_SLUG" ] || [ -z "$CLIENT" ] || [ -z "$TEAMS" ]; then
     echo ""
     echo "Available Class Slugs:"
     echo "  MySQL: mysql-ops, mysql-dev, mysql-101, mysql-oracle-dba, proxysql, mysql-k8s, pxc, gr, gr-101"
+    echo "  MySQL Operators: ps-operator"
     echo "  MongoDB: mongo-ops, mongo-dev"
     echo "  PostgreSQL: pg-ops, pg-dev, pg-tutorial"
     exit 1
@@ -29,6 +30,9 @@ case "$CLASS_SLUG" in
         ;;
     "mysql-k8s")
         MACHINE_TYPES="node1"
+        ;;
+    "ps-operator")
+        MACHINE_TYPES="psop"
         ;;
     "pxc")
         MACHINE_TYPES="pxc"

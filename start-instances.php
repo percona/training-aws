@@ -4,7 +4,7 @@
 include 'config.php';
 
 $actions      = array('ADD', 'DROP', 'LISTINSTANCES', 'GETANSIBLEHOSTS', 'GETCSV', 'GETSSHCONFIG', 'SYNCDYNAMO');
-$machineTypes = array('db1', 'db2', 'scoreboard', 'app', 'pmm', 'mysql1', 'mysql2', 'mysql3', 'pxc', 'gr', 'node1', 'node2', 'node3', 'node4', 'mongodb');
+$machineTypes = array('db1', 'db2', 'scoreboard', 'app', 'pmm', 'mysql1', 'mysql2', 'mysql3', 'pxc', 'gr', 'node1', 'node2', 'node3', 'node4', 'mongodb', 'psop');
 
 const DEBUG = false;
 
@@ -425,6 +425,7 @@ function addNewInstance()
 				$instanceType = "t3.xlarge";
 				break;
 			case "node1":
+			case "psop":
 				$instanceType = "t3.2xlarge";
 				break;
 		}

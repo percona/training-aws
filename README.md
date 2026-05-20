@@ -67,6 +67,7 @@ There are multiple "machine types" which are used in different training courses:
   * `app`: This instance serves as sysbench, docker, and proxysql for the XtraDB Cluster and Group Replication tutorials. Each student should get 1 app instance.
   * `mysql1`, `mysql2`, `mysql3`: These instances are used in the XtraDB Cluster and Group Replication tutorials. Each student should get 1 of each of these.
   * `node1`: This instance is used in the K8S Operator tutorials. Each student should receive 1 of these.
+  * `psop`: Jumphost for the **ps-operator** class — a single-node `kind` cluster runs locally on the EC2, with Garage S3 pre-deployed for PITR labs and the `percona-server-mysql-operator` repo cloned at the pinned tag. The operator itself is installed by the student during Lab 1. Each student should receive 1 of these.
   * `mongodb`: This instance has the Percona Server for MongoDB packages. Each student should receive 1 of these for the MongoDB training.
 
 There are 2 machine type aliases, `gr` and `pxc`, both are aliases which will deploy each of the 4 types: `app`, `mysql1`, `mysql2`, and `mysql3`

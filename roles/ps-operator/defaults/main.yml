@@ -1,0 +1,21 @@
+---
+# Pinned versions for the ps-operator class.
+# Bump in one place when refreshing the class.
+
+ps_operator_version: "v1.1.0"
+ps_operator_repo:    "https://github.com/percona/percona-server-mysql-operator"
+
+garage_version:      "v2.3.0"
+garage_image:        "dxflrs/garage:v2.3.0"
+
+kind_version:        "v0.27.0"
+kubectl_version:     "v1.31.0"
+helm_version:        "v3.16.4"
+k9s_version:         "v0.32.7"
+
+# Lab credentials for the in-cluster Garage S3 backend.
+# Intentionally weak/predictable — students copy these into the operator's
+# credentialsSecret during Lab 2. Do not reuse this pattern in production.
+garage_access_key:   "GKtraining"
+garage_secret_key:   "training-secret-key-do-not-use-in-prod"
+garage_bucket:       "backups"

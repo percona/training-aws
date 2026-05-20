@@ -1,0 +1,220 @@
+---
+# Tasks for the ps-operator training class jumphost.
+#
+# Stages a single-node kind cluster on the host, pre-deploys Garage S3 for
+# the PITR labs, and clones the percona-server-mysql-operator repo at the
+# pinned tag for the student to install during Lab 1. The operator itself
+# is intentionally NOT applied — installing it is the first lab.
+#
+# Students sudo -i then run kubectl as root (matches the existing
+# mysql-k8s / minikube class pattern). /root/.kube/config is the kubeconfig.
+
+- name: install jumphost prerequisites
+  dnf:
+    state: present
+    update_cache: yes
+    name:
+      - git
+      - jq
+      - tar
+
+# --- Docker (kind needs it) ---
+
+- name: add Docker CE yum repo
+  yum_repository:
+    name: Docker-CE
+    description: Docker CE Stable
+    baseurl: "https://download.docker.com/linux/centos/{{ ansible_facts['distribution_major_version'] }}/$basearch/stable"
+    gpgcheck: 1
+    gpgkey:
+      - https://download.docker.com/linux/centos/gpg
+
+- name: install Docker + dependencies
+  dnf:
+    state: present
+    update_cache: yes
+    name:
+      - device-mapper-persistent-data
+      - lvm2
+      - docker-ce
+      - docker-ce-cli
+      - containerd.io
+      - conntrack-tools
+
+- name: enable + start docker
+  systemd:
+    name: docker.service
+    enabled: yes
+    state: started
+
+# --- kubectl / kind / helm / k9s ---
+
+- name: install kubectl {{ kubectl_version }}
+  get_url:
+    url: "https://dl.k8s.io/release/{{ kubectl_version }}/bin/linux/amd64/kubectl"
+    dest: /usr/local/bin/kubectl
+    mode: "0755"
+
+- name: install kind {{ kind_version }}
+  get_url:
+    url: "https://kind.sigs.k8s.io/dl/{{ kind_version }}/kind-linux-amd64"
+    dest: /usr/local/bin/kind
+    mode: "0755"
+
+- name: install helm {{ helm_version }}
+  shell: |
+    set -e
+    cd /tmp
+    curl -fsSLO https://get.helm.sh/helm-{{ helm_version }}-linux-amd64.tar.gz
+    tar -xzf helm-{{ helm_version }}-linux-amd64.tar.gz
+    mv linux-amd64/helm /usr/local/bin/helm
+    chmod 0755 /usr/local/bin/helm
+    rm -rf /tmp/helm-{{ helm_version }}-linux-amd64.tar.gz /tmp/linux-amd64
+  args:
+    creates: /usr/local/bin/helm
+
+- name: install k9s {{ k9s_version }}
+  shell: |
+    set -e
+    cd /tmp
+    curl -fsSLO https://github.com/derailed/k9s/releases/download/{{ k9s_version }}/k9s_Linux_amd64.tar.gz
+    tar -xzf k9s_Linux_amd64.tar.gz k9s
+    mv k9s /usr/local/bin/k9s
+    chmod 0755 /usr/local/bin/k9s
+    rm -f /tmp/k9s_Linux_amd64.tar.gz
+  args:
+    creates: /usr/local/bin/k9s
+
+# --- Percona client + toolkit (so students don't have to install on jumphost) ---
+
+- name: Install Percona repo
+  dnf:
+    state: present
+    disable_gpg_check: yes
+    name:
+      - http://repo.percona.com/yum/percona-release-latest.noarch.rpm
+
+- name: enable Percona repos
+  shell: percona-release enable ps-84-lts && percona-release enable pt
+
+- name: install Percona client + toolkit + mysql client
+  dnf:
+    state: present
+    name:
+      - percona-server-client
+      - percona-toolkit
+
+- name: install pt-k8s-debug-collector
+  get_url:
+    url: https://github.com/percona/percona-toolkit/raw/3.5/bin/pt-k8s-debug-collector
+    dest: /usr/local/bin/pt-k8s-debug-collector
+    mode: "0755"
+
+# --- kind cluster ---
+
+- name: stage kind cluster config
+  copy:
+    src: kind-config.yaml
+    dest: /root/kind-config.yaml
+    mode: "0644"
+
+- name: create kind cluster
+  shell: kind create cluster --config /root/kind-config.yaml --wait 5m
+  args:
+    creates: /root/.kube_kind_created
+  register: kind_create
+
+- name: mark kind cluster as created
+  file:
+    path: /root/.kube_kind_created
+    state: touch
+  when: kind_create is changed
+
+# --- Garage S3 (deployed but operator NOT applied) ---
+
+- name: stage Garage manifest
+  copy:
+    src: garage.yaml
+    dest: /root/garage.yaml
+    mode: "0644"
+
+- name: generate per-team Garage RPC secret
+  shell: openssl rand -hex 32 > /root/.garage_rpc_secret
+  args:
+    creates: /root/.garage_rpc_secret
+
+- name: read Garage RPC secret
+  slurp:
+    src: /root/.garage_rpc_secret
+  register: garage_rpc
+
+- name: patch RPC secret into manifest
+  replace:
+    path: /root/garage.yaml
+    regexp: "REPLACED_BY_ANSIBLE"
+    replace: "{{ garage_rpc.content | b64decode | trim }}"
+
+- name: apply Garage manifest
+  shell: kubectl apply -f /root/garage.yaml
+  args:
+    creates: /root/.garage_applied
+
+- name: wait for Garage pod ready
+  shell: kubectl -n garage wait --for=condition=Ready pod -l app=garage --timeout=300s
+  changed_when: false
+
+- name: mark Garage as applied
+  file:
+    path: /root/.garage_applied
+    state: touch
+
+# --- Clone the PS operator repo for the student ---
+
+- name: ensure lab-assets directory
+  file:
+    path: /home/rocky/lab-assets
+    state: directory
+    owner: rocky
+    group: rocky
+    mode: "0755"
+
+- name: clone percona-server-mysql-operator @ {{ ps_operator_version }}
+  git:
+    repo: "{{ ps_operator_repo }}"
+    dest: /home/rocky/lab-assets/percona-server-mysql-operator
+    version: "{{ ps_operator_version }}"
+    depth: 1
+    force: no
+  become_user: rocky
+
+# --- Quality-of-life: kubeconfig is at /root/.kube/config by default,
+#     students sudo -i. Drop a README so they know what's pre-staged. ---
+
+- name: drop class README into lab-assets
+  copy:
+    dest: /home/rocky/lab-assets/README.md
+    owner: rocky
+    group: rocky
+    mode: "0644"
+    content: |
+      # PS Operator class — pre-staged on this jumphost
+
+      ## Cluster
+      - kind cluster `ps-training` running locally (single node, in docker)
+      - kubectl context: `kind-ps-training`
+      - kubeconfig: `/root/.kube/config` — run `sudo -i` first
+
+      ## Pre-deployed
+      - **Garage** S3 (namespace `garage`, Service `garage:3900`)
+        - access key:  `{{ garage_access_key }}`
+        - secret key:  `{{ garage_secret_key }}`
+        - bucket:      `{{ garage_bucket }}`
+        - endpointUrl: `http://garage.garage.svc:3900`
+      - **percona-server-mysql-operator** repo cloned at `{{ ps_operator_version }}`
+        in `./percona-server-mysql-operator/` — the operator is NOT applied
+        (Lab 1 work)
+
+      ## Tooling on PATH
+      - `kubectl`, `kind`, `helm`, `k9s`
+      - `mysql` (Percona Server client)
+      - `pt-k8s-debug-collector`, full `percona-toolkit`
