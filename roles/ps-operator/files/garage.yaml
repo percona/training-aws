@@ -39,15 +39,13 @@ data:
     db_engine    = "lmdb"
     replication_factor = 1
 
+    # Required in Garage v2.x even for single-node deployments.
+    rpc_bind_addr = "[::]:3901"
+
     [s3_api]
     s3_region     = "garage"
     api_bind_addr = "[::]:3900"
     root_domain   = ".s3.garage.local"
-
-    [s3_web]
-    bind_addr   = "[::]:3902"
-    root_domain = ".web.garage.local"
-    index       = "index.html"
 
     [admin]
     api_bind_addr = "[::]:3903"
@@ -80,7 +78,12 @@ spec:
       containers:
         - name: garage
           image: dxflrs/garage:v2.3.0
-          args: ["server"]
+          # v2.3.0's --single-node flag auto-creates the cluster layout, so
+          # we don't need a separate `garage layout assign/apply` bootstrap
+          # Job. Image has CMD ["/garage","server"] and no ENTRYPOINT — we
+          # set the full command explicitly to add the flag.
+          command: ["/garage"]
+          args: ["server", "--single-node"]
           env:
             - name: GARAGE_DEFAULT_ACCESS_KEY
               valueFrom: { secretKeyRef: { name: garage-keys, key: GARAGE_DEFAULT_ACCESS_KEY } }
