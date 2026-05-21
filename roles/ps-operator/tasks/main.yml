@@ -55,6 +55,15 @@
     dest: /usr/local/bin/kubectl
     mode: "0755"
 
+- name: symlink kubectl into /usr/bin
+  # Rocky 9's sudo secure_path excludes /usr/local/bin, and tools like
+  # pt-k8s-debug-collector shell out to "kubectl" expecting it on PATH.
+  # /usr/bin IS in secure_path, so a symlink works for everyone.
+  file:
+    src: /usr/local/bin/kubectl
+    dest: /usr/bin/kubectl
+    state: link
+
 - name: install kind {{ kind_version }}
   get_url:
     url: "https://kind.sigs.k8s.io/dl/{{ kind_version }}/kind-linux-amd64"
