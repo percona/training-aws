@@ -583,6 +583,13 @@ function searchInstanceMetadataForTag($tag)
 				'Name' => 'tag:Name',
 				'Values' => [$fTag]
 			],
+			// Exclude terminated/shutting-down instances — they keep their
+			// Name tag for up to an hour after teardown and would otherwise
+			// appear as duplicates with empty IPs in GETANSIBLEHOSTS output.
+			[
+				'Name' => 'instance-state-name',
+				'Values' => ['pending', 'running', 'stopping', 'stopped']
+			],
 		],
 	]);
 
