@@ -76,6 +76,23 @@ echo "Using AMI: $LATEST_AMI"
 echo "[3/4] Generating Ansible hosts file..."
 ./start-instances.php -a GETANSIBLEHOSTS -r "$REGION" -p "$CLIENT" > "ansible_hosts_$CLIENT"
 
+echo "[3.5/4] Waiting for SSH to come up on all instances..."
+# EC2 reports "running" ~30-60s before sshd starts accepting connections.
+# Poll each instance until SSH is ready (or give up after 5 min per host).
+HOSTS=$(awk '/ansible_ssh_host=/ {match($0,/ansible_ssh_host=[^ ]+/); print substr($0,RSTART+17,RLENGTH-17)}' "ansible_hosts_$CLIENT")
+for h in $HOSTS; do
+    printf "  -- %s " "$h"
+    for i in $(seq 1 30); do
+        if ssh -i Percona-Training.key -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
+               -o ConnectTimeout=5 -o BatchMode=yes rocky@"$h" 'true' 2>/dev/null; then
+            echo "ready"
+            break
+        fi
+        printf "."
+        sleep 10
+    done
+done
+
 echo "[4/4] Provisioning with Ansible..."
 ansible-playbook -i "ansible_hosts_$CLIENT" hosts.yml
 
