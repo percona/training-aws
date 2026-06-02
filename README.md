@@ -7,6 +7,7 @@ This repository provides tools for instructors to quickly launch, configure, and
 ## Prerequisites
 
 To run these scripts, your local control machine requires:
+
 * **PHP 8.5+**
 * **Composer** (for PHP dependencies)
 * **Ansible Core**
@@ -16,21 +17,25 @@ To run these scripts, your local control machine requires:
 ### Installation
 
 **macOS (Homebrew):**
+
 ```bash
 brew install php@8.5 ansible awscli composer make
 ```
 
 **Linux (Ubuntu/Debian):**
+
 ```bash
 sudo apt-get install php8.5 php-xml php-mbstring ansible awscli composer make
 ```
 
 **Linux (Rocky Linux/RHEL 9):**
+
 ```bash
 sudo dnf install php php-xml php-mbstring ansible-core awscli composer make
 ```
 
 After installing the system packages, install the PHP dependencies:
+
 ```bash
 composer install
 ```
@@ -49,7 +54,7 @@ The simplest setup is to run `aws configure` once, or export the environment var
 
 ## Setting Up a Training Environment
 
-The standard workflow utilizes a `Makefile` that encapsulates VPC creation, instance launching, and Ansible provisioning into a single command. 
+The standard workflow utilizes a `Makefile` that encapsulates VPC creation, instance launching, and Ansible provisioning into a single command.
 
 Environments are built based on **Class Slugs**. A slug represents the specific course being taught and automatically deploys the correct architecture (e.g., `db1`, `gr`, `pxc`).
 
@@ -108,6 +113,7 @@ make teardown client=TREK region=eu-west-1
 Use the following slugs with the `class=` parameter in your `make setup` command.
 
 ### MySQL Courses
+
 | Course Title | Class Slug | Architecture Deployed |
 | :--- | :--- | :--- |
 | MySQL Training for Database Operations Specialists | `mysql-ops` | `db1` (Source), `db2` (Replica) |
@@ -118,12 +124,14 @@ Use the following slugs with the `class=` parameter in your `make setup` command
 | Percona Group Replication Tutorial | `gr` | `gr` (3 nodes + 1 app) |
 
 ### MongoDB Courses
+
 | Course Title | Class Slug | Architecture Deployed |
 | :--- | :--- | :--- |
 | MongoDB Training for Database Operations Specialists | `mongo-ops` | `mongodb` |
 | MongoDB Training for Developers | `mongo-dev` | `mongodb` |
 
 ### PostgreSQL Courses
+
 | Course Title | Class Slug | Architecture Deployed |
 | :--- | :--- | :--- |
 | PostgreSQL Training for Database Operations Specialists | `pg-ops` | `db1` |
@@ -135,10 +143,10 @@ Use the following slugs with the `class=` parameter in your `make setup` command
 
 The provisioning scripts and Ansible playbooks support the following software and configurations:
 
-*   **Operating Systems:** Ubuntu 22.04+, Debian 11+, Rocky Linux 9+.
-*   **Database Versions:** Percona Server for MySQL 8.0, 8.4; Percona Server for MongoDB 7.0; and PMM 3.x client support.
-*   **Security:** IPTables is disabled by default to simplify lab networking.
-*   **SSL:** All MySQL instances are configured with SSL (SHA256).
+* **Operating Systems:** Ubuntu 22.04+, Debian 11+, Rocky Linux 9+.
+* **Database Versions:** Percona Server for MySQL 8.0, 8.4; Percona Server for MongoDB 7.0; and PMM 3.x client support.
+* **Security:** IPTables is disabled by default to simplify lab networking.
+* **SSL:** All MySQL instances are configured with SSL (SHA256).
 
 ---
 
@@ -147,20 +155,23 @@ The provisioning scripts and Ansible playbooks support the following software an
 For custom deployments or debugging, you can bypass the `Makefile` and use the underlying PHP scripts directly.
 
 ### VPC Management
+
 ```bash
 ./setup-vpc.php -a [ADD|DROP|LIST|REBUILD] -r [REGION] -p [CLIENT_SUFFIX]
 ```
 
 ### Instance Management
+
 ```bash
 ./start-instances.php -a ADD -r [REGION] -p [CLIENT_SUFFIX] -c [NUM_TEAMS] -m [MACHINE_TYPE] -i [AMI_ID]
 ```
 
-*   If you omit `-i [AMI_ID]`, the script will output a list of available `Percona-Training` AMIs in that region.
-*   To launch multiple machine types simultaneously, separate them with commas: `-m db1,db2`.
-*   Use `-o [OFFSET]` to add additional teams without overlapping existing numbers.
+* If you omit `-i [AMI_ID]`, the script will output a list of available `Percona-Training` AMIs in that region.
+* To launch multiple machine types simultaneously, separate them with commas: `-m db1,db2`.
+* Use `-o [OFFSET]` to add additional teams without overlapping existing numbers.
 
 ### CloudFormation Templates
+
 Older iterations of the training labs (PMM, some PXC/GR setups) utilized pure AWS CloudFormation. These templates are retained in the `cloudformations/` directory for legacy support and reference.
 
 ---
@@ -169,10 +180,10 @@ Older iterations of the training labs (PMM, some PXC/GR setups) utilized pure AW
 
 The scripts rely on an AWS DynamoDB table to sync and list the generated IPs for the student dashboard.
 
-*   **Region:** Must be in `us-east-1` (hardcoded).
-*   **Table Name:** `percona_training_servers`
-*   **Partition Key:** `teamTag` (String)
-*   **Sort Key:** `teamID` (Number)
+* **Region:** Must be in `us-east-1` (hardcoded).
+* **Table Name:** `percona_training_servers`
+* **Partition Key:** `teamTag` (String)
+* **Sort Key:** `teamID` (Number)
 
 *You generally do not need to manage this table. The scripts will create or update it automatically.*
 
