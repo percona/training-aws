@@ -10,7 +10,7 @@ To run these scripts, your local control machine requires:
 * **PHP 8.5+**
 * **Composer** (for PHP dependencies)
 * **Ansible Core**
-* **AWS CLI** (configured with proper credentials in `~/.aws/credentials`)
+* **AWS CLI** (configured with valid credentials — see [AWS Credentials](#aws-credentials) below)
 * **Make**
 
 ### Installation
@@ -35,6 +35,16 @@ After installing the system packages, install the PHP dependencies:
 composer install
 ```
 
+### AWS Credentials
+
+The scripts use the **AWS SDK default credential provider chain**, so any standard configuration method works — there is no longer a requirement for a `~/.aws/credentials` file with a `default` profile. The SDK resolves credentials in the usual order:
+
+1. Environment variables (`AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_SESSION_TOKEN`).
+2. The shared config/credentials files (`~/.aws/credentials`, `~/.aws/config`), including named profiles via `AWS_PROFILE`.
+3. An IAM role attached to the EC2 instance or container (instance profile).
+
+The simplest setup is to run `aws configure` once, or export the environment variables for your session.
+
 ---
 
 ## Setting Up a Training Environment
@@ -42,6 +52,18 @@ composer install
 The standard workflow utilizes a `Makefile` that encapsulates VPC creation, instance launching, and Ansible provisioning into a single command. 
 
 Environments are built based on **Class Slugs**. A slug represents the specific course being taught and automatically deploys the correct architecture (e.g., `db1`, `gr`, `pxc`).
+
+### The Class Identifier (`client`)
+
+The `client=` value (e.g., `TREK`) is the **class identifier** — a short code that uniquely tags every resource for a single training delivery. Choose a short, memorable code that represents the client or engagement (e.g., `TREK`, `DELL`, `ACME`).
+
+This identifier is used throughout the workflow:
+
+* It names and tags all AWS resources (e.g., the VPC `Percona-Training-TREK`, instances `Percona-Training-TREK-db1-T1`).
+* It is stored as the `teamTag` partition key in the DynamoDB table (see [DynamoDB Requirement](#dynamodb-requirement)), which is how the scripts track the instances belonging to this class.
+* It is the `tag` used by the student dashboard URL: `http://percona-training.s3-website-us-east-1.amazonaws.com/?tag=TREK`.
+
+Use the **same** `client` value for every `make` command (`setup`, `summary`, `teardown`) in a given class so they all operate on the same set of resources.
 
 ### 0. List Available AMIs
 
@@ -69,7 +91,7 @@ Once setup is complete, generate the student connection summary:
 make summary client=TREK
 ```
 
-This will output a formatted block of text containing the S3 dashboard URL (which lists all instance IPs), the standard SSH user (`ec2-user` or `rocky`), and instructions for downloading the SSH keys. Share this output with your class.
+This will output a formatted block of text containing the S3 dashboard URL (which lists all instance IPs), the standard SSH user (`rocky`), and instructions for downloading the SSH keys. Share this output with your class.
 
 ### 3. Teardown
 
@@ -88,14 +110,11 @@ Use the following slugs with the `class=` parameter in your `make setup` command
 ### MySQL Courses
 | Course Title | Class Slug | Architecture Deployed |
 | :--- | :--- | :--- |
-| MySQL Training for Database Operations Specialists | `mysql-ops` | `db1` (Master), `db2` (Replica) |
+| MySQL Training for Database Operations Specialists | `mysql-ops` | `db1` (Source), `db2` (Replica) |
 | MySQL Training for Developers | `mysql-dev` | `db1` |
-| DBA Hands-On (MySQL 101) | `mysql-101` | `db1` |
-| MySQL for Oracle DBA's | `mysql-oracle-dba` | `db1` |
 | ProxySQL Tutorial | `proxysql` | `db1` |
 | Percona Operator for MySQL based on PXC | `mysql-k8s` | `node1` (K8s node) |
 | Percona XtraDB Cluster Tutorial | `pxc` | `pxc` (3 nodes + 1 app) |
-| MySQL Group Replication 101 | `gr-101` | `gr` (3 nodes + 1 app) |
 | Percona Group Replication Tutorial | `gr` | `gr` (3 nodes + 1 app) |
 
 ### MongoDB Courses
@@ -109,7 +128,6 @@ Use the following slugs with the `class=` parameter in your `make setup` command
 | :--- | :--- | :--- |
 | PostgreSQL Training for Database Operations Specialists | `pg-ops` | `db1` |
 | PostgreSQL Training for Developers | `pg-dev` | `db1` |
-| PostgreSQL Tutorial | `pg-tutorial` | `db1` |
 
 ---
 
