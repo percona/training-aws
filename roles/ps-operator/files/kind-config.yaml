@@ -1,0 +1,8 @@
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+name: ps-training
+nodes:
+  - role: control-plane
+    extraPortMappings:
+      - { containerPort: 30900, hostPort: 3900, protocol: TCP }  # Garage S3 API
+      - { containerPort: 30903, hostPort: 3903, protocol: TCP }  # Garage admin

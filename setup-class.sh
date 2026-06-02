@@ -13,6 +13,7 @@ if [ -z "$CLASS_SLUG" ] || [ -z "$CLIENT" ] || [ -z "$TEAMS" ]; then
     echo ""
     echo "Available Class Slugs:"
     echo "  MySQL: mysql-ops, mysql-dev, mysql-101, mysql-oracle-dba, proxysql, mysql-k8s, pxc, gr, gr-101"
+    echo "  MySQL Operators: ps-operator"
     echo "  MongoDB: mongo-ops, mongo-dev"
     echo "  PostgreSQL: pg-ops, pg-dev, pg-tutorial"
     exit 1
@@ -29,6 +30,9 @@ case "$CLASS_SLUG" in
         ;;
     "mysql-k8s")
         MACHINE_TYPES="node1"
+        ;;
+    "ps-operator")
+        MACHINE_TYPES="psop"
         ;;
     "pxc")
         MACHINE_TYPES="pxc"
@@ -55,9 +59,11 @@ echo "[1/4] Creating VPC..."
 ./setup-vpc.php -a ADD -r "$REGION" -p "$CLIENT"
 
 echo "[2/4] Launching Instances..."
-# For simplicity, we assume the user already knows the AMI or we pick a generic one. But normally we should fetch the latest.
-# Let's try to get the first AMI listed from start-instances.php.
-LATEST_AMI=$(./start-instances.php -a ADD -r "$REGION" -p dummy -c 1 -m db1 2>&1 | grep "AMI" | grep -v 'Name' | head -n 1 | awk '{print $NF}')
+# Fetch the latest Percona-Training AMI. start-instances.php in ADD mode without -i
+# prints the AMI list (sorted ascending by name/date) and exits, so we use that as
+# the lookup mechanism. -p "$CLIENT" reuses the VPC config created in step 1; tail
+# -n 1 grabs the newest entry.
+LATEST_AMI=$(./start-instances.php -a ADD -r "$REGION" -p "$CLIENT" -c 1 -m db1 2>&1 | grep "AMI" | grep -v 'Name' | tail -n 1 | awk '{print $NF}')
 
 if [[ "$LATEST_AMI" != ami-* ]]; then
     echo "Could not detect the latest AMI automatically. Please update setup-class.sh or pass an AMI manually."
@@ -69,6 +75,23 @@ echo "Using AMI: $LATEST_AMI"
 
 echo "[3/4] Generating Ansible hosts file..."
 ./start-instances.php -a GETANSIBLEHOSTS -r "$REGION" -p "$CLIENT" > "ansible_hosts_$CLIENT"
+
+echo "[3.5/4] Waiting for SSH to come up on all instances..."
+# EC2 reports "running" ~30-60s before sshd starts accepting connections.
+# Poll each instance until SSH is ready (or give up after 5 min per host).
+HOSTS=$(awk '/ansible_ssh_host=/ {match($0,/ansible_ssh_host=[^ ]+/); print substr($0,RSTART+17,RLENGTH-17)}' "ansible_hosts_$CLIENT")
+for h in $HOSTS; do
+    printf "  -- %s " "$h"
+    for i in $(seq 1 30); do
+        if ssh -i Percona-Training.key -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
+               -o ConnectTimeout=5 -o BatchMode=yes rocky@"$h" 'true' 2>/dev/null; then
+            echo "ready"
+            break
+        fi
+        printf "."
+        sleep 10
+    done
+done
 
 echo "[4/4] Provisioning with Ansible..."
 ansible-playbook -i "ansible_hosts_$CLIENT" hosts.yml

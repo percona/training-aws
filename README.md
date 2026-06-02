@@ -114,6 +114,7 @@ Use the following slugs with the `class=` parameter in your `make setup` command
 | MySQL Training for Developers | `mysql-dev` | `db1` |
 | ProxySQL Tutorial | `proxysql` | `db1` |
 | Percona Operator for MySQL based on PXC | `mysql-k8s` | `node1` (K8s node) |
+| Percona Operator for MySQL based on Percona Server | `ps-operator` | `psop` (kind jumphost) |
 | Percona XtraDB Cluster Tutorial | `pxc` | `pxc` (3 nodes + 1 app) |
 | Percona Group Replication Tutorial | `gr` | `gr` (3 nodes + 1 app) |
 
