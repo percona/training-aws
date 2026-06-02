@@ -3,12 +3,21 @@
 
 include 'config.php';
 
-$actions      = array('ADD', 'DROP', 'LISTINSTANCES', 'GETANSIBLEHOSTS', 'GETCSV', 'GETSSHCONFIG', 'SYNCDYNAMO');
+$actions      = array('ADD', 'DROP', 'LISTINSTANCES', 'GETANSIBLEHOSTS', 'GETCSV', 'GETSSHCONFIG', 'SYNCDYNAMO', 'LISTAMIS');
 $machineTypes = array('db1', 'db2', 'scoreboard', 'app', 'pmm', 'mysql1', 'mysql2', 'mysql3', 'pxc', 'gr', 'node1', 'node2', 'node3', 'node4', 'mongodb');
 
 const DEBUG = false;
 
 $options = parseOptions();
+
+// LISTAMIS only needs a region: list the Percona-Training AMIs and exit before
+// we try to load any per-client VPC config (which requires a suffix).
+if ($options['action'] == 'LISTAMIS')
+{
+	printAmis($options['region']);
+	exit();
+}
+
 $config = loadConfig();
 
 /* This is the EC2 API Client object */
@@ -659,8 +668,8 @@ function parseOptions()
 		exit();
 	}
 
-	// Suffix is required
-	if (!isset($_opt['suffix']) || strlen($_opt['suffix']) < 3)
+	// Suffix is required (except LISTAMIS, which only needs a region)
+	if ($_opt['action'] != 'LISTAMIS' && (!isset($_opt['suffix']) || strlen($_opt['suffix']) < 3))
 	{
 		printf("\nError: -p is required. 3 character minimum.\n");
 		exit();

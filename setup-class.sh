@@ -55,9 +55,9 @@ echo "[1/4] Creating VPC..."
 ./setup-vpc.php -a ADD -r "$REGION" -p "$CLIENT"
 
 echo "[2/4] Launching Instances..."
-# For simplicity, we assume the user already knows the AMI or we pick a generic one. But normally we should fetch the latest.
-# Let's try to get the first AMI listed from start-instances.php.
-LATEST_AMI=$(./start-instances.php -a ADD -r "$REGION" -p dummy -c 1 -m db1 2>&1 | grep "AMI" | grep -v 'Name' | head -n 1 | awk '{print $NF}')
+# Auto-detect the newest Percona-Training AMI in the region. LISTAMIS prints the
+# AMIs sorted oldest->newest, so the last ami-* id is the latest one.
+LATEST_AMI=$(./start-instances.php -a LISTAMIS -r "$REGION" 2>&1 | grep -oE 'ami-[0-9a-f]+' | tail -n 1)
 
 if [[ "$LATEST_AMI" != ami-* ]]; then
     echo "Could not detect the latest AMI automatically. Please update setup-class.sh or pass an AMI manually."
@@ -70,7 +70,33 @@ echo "Using AMI: $LATEST_AMI"
 echo "[3/4] Generating Ansible hosts file..."
 ./start-instances.php -a GETANSIBLEHOSTS -r "$REGION" -p "$CLIENT" > "ansible_hosts_$CLIENT"
 
+# EC2 reports an instance as 'running' 30-90s before sshd actually accepts
+# connections, so running Ansible immediately fails with UNREACHABLE. Wait for
+# SSH on every host (up to 5 min each) before provisioning.
+echo "[3.5/4] Waiting for SSH to be ready on all instances..."
+HOSTS=$(grep -oE 'ansible_ssh_host=[^[:space:]]+' "ansible_hosts_$CLIENT" | cut -d= -f2 | sort -u)
+for h in $HOSTS; do
+    printf "  -- %s " "$h"
+    ready=0
+    for i in $(seq 1 30); do
+        if ssh -i Percona-Training.key -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
+               -o ConnectTimeout=5 -o BatchMode=yes "rocky@$h" 'true' 2>/dev/null; then
+            echo "ready"; ready=1; break
+        fi
+        printf "."; sleep 10
+    done
+    if [ "$ready" -ne 1 ]; then
+        echo " TIMED OUT"
+        echo "Error: $h never became reachable over SSH (5 min). Aborting before provisioning."
+        exit 1
+    fi
+done
+
 echo "[4/4] Provisioning with Ansible..."
-ansible-playbook -i "ansible_hosts_$CLIENT" hosts.yml
+if ! ansible-playbook -i "ansible_hosts_$CLIENT" hosts.yml; then
+    echo "Error: Ansible provisioning FAILED. Instances are running but not fully configured."
+    echo "       Re-run: ansible-playbook -i ansible_hosts_$CLIENT hosts.yml"
+    exit 1
+fi
 
 echo "Setup complete! Run 'make summary client=$CLIENT' to get the class handout."
