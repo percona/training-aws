@@ -29,8 +29,12 @@ $ec2 = Aws\Ec2\Ec2Client::factory(array(
 use Aws\DynamoDb\Exception\DynamoDbException;
 use Aws\DynamoDb\Marshaler;
 
+// The DynamoDB table that backs the student dashboard lives in a single
+// region (us-east-1 by default). Override with PERCONA_TRAINING_DYNAMODB_REGION
+// if the table is hosted elsewhere. This is independent of the EC2 training
+// region passed via -r.
 $dynamo = Aws\DynamoDb\DynamoDbClient::factory(array(
-    'region'  => 'us-east-1',
+    'region'  => getenv('PERCONA_TRAINING_DYNAMODB_REGION') ?: 'us-east-1',
     'version' => 'latest',
     'retries' => ['mode' => 'adaptive', 'max_attempts' => 10]));
 

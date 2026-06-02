@@ -180,12 +180,17 @@ Older iterations of the training labs (PMM, some PXC/GR setups) utilized pure AW
 
 The scripts rely on an AWS DynamoDB table to sync and list the generated IPs for the student dashboard.
 
-* **Region:** Must be in `us-east-1` (hardcoded).
+* **Region:** `us-east-1` by default. Override with the `PERCONA_TRAINING_DYNAMODB_REGION` environment variable if the table lives elsewhere (this is independent of the EC2 training region passed via `-r`).
 * **Table Name:** `percona_training_servers`
 * **Partition Key:** `teamTag` (String)
 * **Sort Key:** `teamID` (Number)
 
 *You generally do not need to manage this table. The scripts will create or update it automatically.*
+
+```bash
+# Example: point the scripts at a DynamoDB table hosted in eu-west-1
+export PERCONA_TRAINING_DYNAMODB_REGION=eu-west-1
+```
 
 ---
 

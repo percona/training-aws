@@ -7,7 +7,7 @@ use Aws\DynamoDb\Exception\DynamoDbException;
 use Aws\DynamoDb\Marshaler;
 
 $dynamo = Aws\DynamoDb\DynamoDbClient::factory(array(
-    'region'  => 'us-east-1',
+    'region'  => getenv('PERCONA_TRAINING_DYNAMODB_REGION') ?: 'us-east-1',
     'version' => 'latest',
     'retries' => ['mode' => 'adaptive', 'max_attempts' => 10]));
 
