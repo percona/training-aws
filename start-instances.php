@@ -23,14 +23,16 @@ $config = loadConfig();
 /* This is the EC2 API Client object */
 $ec2 = Aws\Ec2\Ec2Client::factory(array(
 	'region' => $options['region'],
-	'version'=> 'latest'));
+	'version'=> 'latest',
+	'retries'=> ['mode' => 'adaptive', 'max_attempts' => 10]));
 
 use Aws\DynamoDb\Exception\DynamoDbException;
 use Aws\DynamoDb\Marshaler;
 
 $dynamo = Aws\DynamoDb\DynamoDbClient::factory(array(
     'region'  => 'us-east-1',
-    'version' => 'latest'));
+    'version' => 'latest',
+    'retries' => ['mode' => 'adaptive', 'max_attempts' => 10]));
 
 switch($options['action'])
 {
@@ -853,7 +855,8 @@ function printAmis($region)
 {
 	$ec2 = Aws\Ec2\Ec2Client::factory(array(
 		'region' => $region,
-		'version'=> 'latest'));
+		'version'=> 'latest',
+		'retries'=> ['mode' => 'adaptive', 'max_attempts' => 10]));
 
 	$res = $ec2->describeImages(array(
 		'Owners' => array('self'),

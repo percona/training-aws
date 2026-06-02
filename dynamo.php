@@ -8,7 +8,8 @@ use Aws\DynamoDb\Marshaler;
 
 $dynamo = Aws\DynamoDb\DynamoDbClient::factory(array(
     'region'  => 'us-east-1',
-    'version' => 'latest'));
+    'version' => 'latest',
+    'retries' => ['mode' => 'adaptive', 'max_attempts' => 10]));
 
 $i = array("machineType" => "mysql1", "PublicIp" => "33.33.33.33", "PrivateIp" => "1.2.3.4");
 
