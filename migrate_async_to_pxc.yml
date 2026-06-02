@@ -23,7 +23,7 @@
      
   - name: Enable Percona XtraDB Cluster Repo
     shell: >
-      percona-release enable pxc-80
+      percona-release enable pxc-84-lts
 
   - name: Install Percona XtraDB Cluster
     yum:
