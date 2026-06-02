@@ -75,11 +75,14 @@ There are 3 machine type aliases:
   * `gr` and `pxc` each deploy the 4 types `app`, `mysql1`, `mysql2`, and `mysql3` (XtraDB Cluster / Group Replication).
   * `pg` deploys one full PostgreSQL student set: `pg1`, `pg2`, and `pg3`.
 
-> **Security group note (PostgreSQL course):** the training VPC opens only 22/80/443/8080.
-> The `pg` nodes also need intra-VPC traffic on **5432** (PostgreSQL) plus the HA-lab ports
-> **8008** (Patroni REST), **2379/2380** (etcd), **6432** (PgBouncer), and **5000/5001**
-> (HAProxy). Add a self-referencing inbound rule on the training security group (allow all
-> traffic from the SG to itself) before running the replication/HA labs.
+> **Inter-node traffic (PostgreSQL HA labs):** no manual security-group changes are
+> required. `setup-vpc.php` automatically adds a self-referencing rule to the training
+> security group that allows all traffic between training instances. This covers the
+> ports the `pg` HA labs use — **5432** (PostgreSQL), **8008** (Patroni REST),
+> **2379/2380** (etcd), **6432** (PgBouncer), and **5000/5001** (HAProxy) — as well as
+> the PXC/GR cluster ports, without exposing anything to the internet. (Existing VPCs
+> created before this change get the rule added automatically on the next
+> `setup-vpc.php -a ADD` run.)
 
 ## Set Up Instances
 

@@ -769,6 +769,7 @@ function createSecurityGroups()
 		$haveInboundHTTPRule = false;
 		$haveInboundAltHTTPRule = false;
 		$haveInboundHTTPSRule = false;
+		$haveSelfReferenceRule = false;
 		
 		$res = $ec2->describeSecurityGroups(array(
 			'Filters' => array(
@@ -833,6 +834,21 @@ function createSecurityGroups()
 					printf("-- Found ingress rule for HTTPS (443).\n");
 					$haveInboundHTTPSRule = true;
 				}
+
+				// Self-reference (all traffic between instances in this SG).
+				// Covers intra-cluster ports for the multi-node labs.
+				if ($perm['IpProtocol'] == '-1'
+					&& isset($perm['UserIdGroupPairs']))
+				{
+					foreach($perm['UserIdGroupPairs'] as $pair)
+					{
+						if ($pair['GroupId'] == $config['SecurityGroup']['GroupId'])
+						{
+							printf("-- Found self-reference ingress rule (intra-cluster traffic).\n");
+							$haveSelfReferenceRule = true;
+						}
+					}
+				}
 			}
 		}
 		else
@@ -870,6 +886,13 @@ function createSecurityGroups()
 			printf("-- Did not find ingres rule for Alt-HTTP. Adding rule..\n");
 			addIngressRule(8080, "0.0.0.0/0");
 			printf("-- Added ingress rule for Alt-HTTP.\n");
+		}
+
+		if (!$haveSelfReferenceRule)
+		{
+			printf("-- Did not find self-reference rule. Adding rule (intra-cluster traffic)..\n");
+			addSelfReferenceRule();
+			printf("-- Added self-reference ingress rule (all traffic between training nodes).\n");
 		}
 	}
 	catch(Exception $e)
@@ -1042,7 +1065,31 @@ function addIngressRule($port, $cidr)
 				'ToPort' => $port,
 				'IpRanges' => array(array('CidrIp' => $cidr))
 			)
-		)		
+		)
+	));
+}
+
+function addSelfReferenceRule()
+{
+	global $ec2, $config;
+
+	/* Allow all traffic between instances in this security group. Every training
+	 * instance launches into this (the VPC default) SG, so this opens the
+	 * intra-cluster ports the multi-node labs need -- PXC/Galera, Group Replication,
+	 * and the PostgreSQL HA stack (5432, Patroni 8008, etcd 2379/2380, PgBouncer 6432,
+	 * HAProxy 5000/5001) -- without exposing anything to the internet.
+	*/
+	$res = $ec2->authorizeSecurityGroupIngress(array(
+		'DryRun' => DRY_RUN,
+		'GroupId' => $config['SecurityGroup']['GroupId'],
+		'IpPermissions' => array(
+			array(
+				'IpProtocol' => '-1',
+				'UserIdGroupPairs' => array(
+					array('GroupId' => $config['SecurityGroup']['GroupId'])
+				)
+			)
+		)
 	));
 }
 
