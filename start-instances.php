@@ -3,7 +3,7 @@
 
 include 'config.php';
 
-$actions      = array('ADD', 'DROP', 'LISTINSTANCES', 'GETANSIBLEHOSTS', 'GETCSV', 'GETSSHCONFIG', 'SYNCDYNAMO', 'LISTAMIS');
+$actions      = array('ADD', 'DROP', 'LISTINSTANCES', 'GETANSIBLEHOSTS', 'GETCSV', 'GETSSHCONFIG', 'SYNCDYNAMO', 'LISTAMIS', 'TAG');
 $machineTypes = array('db1', 'db2', 'scoreboard', 'app', 'pmm', 'mysql1', 'mysql2', 'mysql3', 'pxc', 'gr', 'node1', 'node2', 'node3', 'node4', 'mongodb');
 
 const DEBUG = false;
@@ -298,55 +298,107 @@ function tagInstances()
 {
 	global $ec2, $options, $config;
 
-	// in some weird cases, instances may not get tagged because of exception on creation
-	// since they are un-tagged, they are assumed to be unused so we can simply get those
-	// instances in this VPC that don't have the tag and assign new tags to them
+	// In rare cases an instance fails to get tagged at creation (an exception
+	// during the tag call), leaving it without a Name tag. This re-tags those
+	// instances by working out which expected names are still missing and
+	// assigning them to the untagged instances.
+	//
+	// To rebuild the expected names we need the same -m (machine type) and
+	// -c (team count) used at launch. An untagged instance carries no hint of
+	// which machine type it was meant to be, so this is only safe for a single
+	// machine type per run; for multi-type launches, re-run ADD for the type.
+	if (!isset($options['machinetype']) || !isset($options['teamcount']))
+	{
+		printf("\nError: TAG requires -m (machine type) and -c (team count) so the expected names can be rebuilt.\n");
+		exit();
+	}
 
-	// search for all instances that match our name pattern
+	$machines = explode(",", $options['machinetype']);
+	$offset   = isset($options['offset']) ? $options['offset'] : 0;
+
+	// Construct the full set of names this launch should have produced
+	// (mirrors the naming used in addNewInstance()).
+	$expectedNames = array();
+	for ($team = $offset + 1; $team <= ($options['teamcount'] + $offset); $team++)
+	{
+		foreach ($machines as $machine)
+		{
+			$t = ($machine == 'scoreboard') ? 0 : $team;
+			$expectedNames[] = sprintf("Percona-Training-%s-%s-T%d",
+				$options['suffix'], $machine, $t);
+		}
+	}
+
+	// Find running/stopped instances in this VPC; split into already-named
+	// and untagged.
 	$res = $ec2->describeInstances(array(
 		'Filters' => array(
 			array(
 				'Name' => 'vpc-id',
 				'Values' => array($config['Vpc']['VpcId'])
+			),
+			array(
+				'Name' => 'instance-state-name',
+				'Values' => array('pending', 'running', 'stopping', 'stopped')
 			)
 		)
 	));
 
-	$teamCounter = 1;
-	$reservations = $res->get('Reservations');
-
-	// Instances can be part of multiple reservations (hosts)
-	$numInstances = 0;
-	foreach($reservations as $r)
+	$takenNames = array();
+	$untaggedInstanceIds = array();
+	foreach ($res->get('Reservations') as $r)
 	{
-		$numInstances += count($r['Instances']);
-	}
-
-	// Construct an array of all the names we 'should' have. We will remove as
-	// we find them and then assign the ones that remain.
-	$instanceNames = array();
-	for($i = 1; $i <= $numInstances; $i++)
-	{
-		$instanceNames[] = sprintf("Percona-Training-%s-%s-T%d",
-				$options['suffix'], $options['machinetype'], $i);
-	}
-
-	// TODO: finish this. for adding tags after the fact.
-	exit();
-
-	// loop thru all instances looking for those without name tag
-	foreach($reservations as $r)
-	{
-		foreach($r['Instances'] as $i)
+		foreach ($r['Instances'] as $inst)
 		{
-			if (isset($i['Tags'])
-				&& $i['Tags'][0]['Key'] == 'Name'
-				&& in_array($i['Tags'][0]['Value'], $instanceNames))
+			$name = null;
+			if (isset($inst['Tags']))
 			{
-				unset($instanceNames);
+				foreach ($inst['Tags'] as $tag)
+				{
+					if ($tag['Key'] == 'Name')
+					{
+						$name = $tag['Value'];
+						break;
+					}
+				}
 			}
+
+			if ($name === null || $name === '')
+				$untaggedInstanceIds[] = $inst['InstanceId'];
+			else
+				$takenNames[] = $name;
 		}
 	}
+
+	if (count($untaggedInstanceIds) == 0)
+	{
+		printf("- No untagged instances found in this VPC. Nothing to do.\n");
+		return;
+	}
+
+	// Names we expected but don't see on any instance yet.
+	$missingNames = array_values(array_diff($expectedNames, $takenNames));
+
+	// Refuse to guess if the counts don't line up (e.g. multiple machine
+	// types involved); mis-tagging would be worse than doing nothing.
+	if (count($untaggedInstanceIds) > count($missingNames))
+	{
+		printf("!! Found %d untagged instance(s) but only %d expected name(s) are missing.\n",
+			count($untaggedInstanceIds), count($missingNames));
+		printf("   Re-run ADD for the affected machine type instead of using TAG.\n");
+		return;
+	}
+
+	// Assign each missing name to an untagged instance.
+	foreach ($untaggedInstanceIds as $idx => $instanceId)
+	{
+		$name = $missingNames[$idx];
+		printf("- Tagging untagged instance %s as '%s'\n", $instanceId, $name);
+		tagEntity($instanceId, 'Name', $name);
+		tagEntity($instanceId, 'TrainingEndDate', date('Y-m-d', strtotime('+7 days')));
+	}
+
+	printf("- Tagged %d instance(s).\n", count($untaggedInstanceIds));
 }
 
 function listInstances()
