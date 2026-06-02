@@ -1,0 +1,40 @@
+# Managed by the `postgres` training role — drop-in under conf.d/.
+# Lab-friendly starting configuration for a 2 vCPU / 8 GB node (t3.large).
+# Block 4 of the course has students change several of these and observe the effect.
+
+#--- Connections ---
+listen_addresses = '*'
+max_connections = 100
+
+#--- Memory (~8 GB node) ---
+shared_buffers = 2GB
+effective_cache_size = 6GB
+work_mem = 16MB
+maintenance_work_mem = 512MB
+
+#--- WAL / checkpoints (enables replication + pgBackRest in later blocks) ---
+wal_level = replica
+max_wal_senders = 10
+max_replication_slots = 10
+wal_log_hints = on            # required by pg_rewind (Block 3)
+checkpoint_timeout = 15min
+max_wal_size = 4GB
+checkpoint_completion_target = 0.9
+
+#--- Planner (SSD) ---
+random_page_cost = 1.1
+effective_io_concurrency = 200
+
+#--- Logging (Block 4 troubleshooting) ---
+logging_collector = on
+log_directory = 'log'
+log_filename = 'postgresql-%a.log'
+log_line_prefix = '%m [%p] %h %u@%d '
+log_min_duration_statement = 250ms
+log_lock_waits = on
+log_checkpoints = on
+log_autovacuum_min_duration = 0
+
+#--- Stats / monitoring (pg_stat_monitor used in Block 4 / PMM QAN) ---
+shared_preload_libraries = 'pg_stat_statements,pg_stat_monitor'
+track_io_timing = on

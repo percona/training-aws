@@ -1,0 +1,45 @@
+---
+# Register this node with the shared class PMM server and add the
+# PostgreSQL instance for monitoring. Requires pmm-client installed and
+# `pmm_server_ip` set to the class pmm node's private IP.
+
+- name: Enable the PMM client repo channel
+  ansible.builtin.command: "percona-release enable pmm3-client"
+  args:
+    creates: "/etc/yum.repos.d/percona-pmm3-client-release.repo"
+  ignore_errors: true
+
+- name: Ensure pmm-client is installed
+  ansible.builtin.dnf:
+    name: pmm-client
+    state: present
+  ignore_errors: true
+
+- name: Create the PMM monitoring role in PostgreSQL
+  become: true
+  become_user: postgres
+  ansible.builtin.shell: |
+    psql -tAc "SELECT 1 FROM pg_roles WHERE rolname='pmm'" | grep -q 1 || \
+      psql -c "CREATE USER pmm WITH SUPERUSER ENCRYPTED PASSWORD '{{ pg_pmm_password }}';"
+  changed_when: false
+
+- name: Allow local pmm connections in pg_hba.conf
+  ansible.builtin.lineinfile:
+    path: "{{ pg_datadir }}/pg_hba.conf"
+    line: "host    all    pmm    127.0.0.1/32    scram-sha-256"
+    insertafter: EOF
+  notify: reload postgresql
+
+- name: Register the node with the PMM server
+  ansible.builtin.command: >
+    pmm-admin config --server-insecure-tls
+    --server-url=https://admin:admin@{{ pmm_server_ip }}:443
+  changed_when: false
+  failed_when: false
+
+- name: Add PostgreSQL to PMM monitoring
+  ansible.builtin.command: >
+    pmm-admin add postgresql --username=pmm --password={{ pg_pmm_password }}
+    {{ machinetype }}-{{ team | default('T0') }}-postgresql
+  changed_when: false
+  failed_when: false

@@ -4,7 +4,7 @@
 include 'config.php';
 
 $actions      = array('ADD', 'DROP', 'LISTINSTANCES', 'GETANSIBLEHOSTS', 'GETCSV', 'GETSSHCONFIG', 'SYNCDYNAMO');
-$machineTypes = array('db1', 'db2', 'scoreboard', 'app', 'pmm', 'mysql1', 'mysql2', 'mysql3', 'pxc', 'gr', 'node1', 'node2', 'node3', 'node4', 'mongodb');
+$machineTypes = array('db1', 'db2', 'scoreboard', 'app', 'pmm', 'mysql1', 'mysql2', 'mysql3', 'pxc', 'gr', 'node1', 'node2', 'node3', 'node4', 'mongodb', 'pg1', 'pg2', 'pg3', 'pg');
 
 const DEBUG = false;
 
@@ -692,9 +692,9 @@ function parseOptions()
 		}
 
 		// Sanity; scoreboard and clusters cannot be launched with other types
-		if (count($machines) > 1 && (in_array("scoreboard", $machines) || in_array("pxc", $machines) || in_array("gr", $machines)))
+		if (count($machines) > 1 && (in_array("scoreboard", $machines) || in_array("pxc", $machines) || in_array("gr", $machines) || in_array("pg", $machines)))
 		{
-			printf("\nError: 'scoreboard', 'pxc', and 'gr' cannot be combined with other maching types.\n");
+			printf("\nError: 'scoreboard', 'pxc', 'gr', and 'pg' cannot be combined with other maching types.\n");
 			exit();
 		}
 
@@ -702,6 +702,12 @@ function parseOptions()
 		if ($machines[0] == 'pxc' || $machines[0] == 'gr')
 		{
 			$machines = array('mysql1', 'mysql2', 'mysql3', 'app');
+		}
+
+		// PostgreSQL course: the 'pg' alias expands to one full student set
+		if ($machines[0] == 'pg')
+		{
+			$machines = array('pg1', 'pg2', 'pg3');
 		}
 
 		// AMI is required for adding instance. Search and display a list of all Percona-Training* AMIs

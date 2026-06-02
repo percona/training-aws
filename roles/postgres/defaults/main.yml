@@ -1,0 +1,27 @@
+---
+# Defaults for the `postgres` training role.
+# Used by the pg1/pg2/pg3 machine types (Percona PostgreSQL DBA & Operations course).
+
+pg_major: 17
+pg_bindir: "/usr/pgsql-{{ pg_major }}/bin"
+pg_datadir: "/var/lib/pgsql/{{ pg_major }}/data"
+pg_service: "postgresql-{{ pg_major }}"
+pg_percona_channel: "ppg-{{ pg_major }}"
+
+# The private range students connect from (training VPC is 10.11.0.0/16;
+# 10.0.0.0/8 is a convenient superset for a throwaway class environment).
+pg_trusted_cidr: "10.0.0.0/8"
+
+# Training-only passwords. NEVER use these outside a throwaway class env.
+pg_sysbench_password: "secret"
+pg_replicator_password: "secret"
+pg_pmm_password: "secret"
+
+# Shared class PMM server: set to the pmm node's private IP at provision time
+# (e.g. -e pmm_server_ip=10.11.0.50). Empty = skip PMM client registration.
+pmm_server_ip: ""
+
+# Bluebox sample dataset (loaded on pg1 only)
+bluebox_load: true
+bluebox_schema_url: "https://raw.githubusercontent.com/ryanbooz/bluebox/main/bluebox_schema.sql"
+bluebox_data_url: "https://raw.githubusercontent.com/ryanbooz/bluebox/main/bluebox_data.sql.gz"

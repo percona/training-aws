@@ -68,8 +68,18 @@ There are multiple "machine types" which are used in different training courses:
   * `mysql1`, `mysql2`, `mysql3`: These instances are used in the XtraDB Cluster and Group Replication tutorials. Each student should get 1 of each of these.
   * `node1`: This instance is used in the K8S Operator tutorials. Each student should receive 1 of these.
   * `mongodb`: This instance has the Percona Server for MongoDB packages. Each student should receive 1 of these for the MongoDB training.
+  * `pg1`, `pg2`, `pg3`: Used for the **PostgreSQL DBA & Operations** course (Percona Distribution for PostgreSQL 17). `pg1` is the primary (+ sysbench client, first PMM-monitored node); `pg2` is the standby/promoted primary; `pg3` is the pgBackRest repository, DR target, third Patroni node, and runs HAProxy/PgBouncer. Each student should receive 1 of each. Course content lives in `pg-training/` in the `training-material` repo.
+  * `pmm`: A shared **PMM Server** (one per class, like `scoreboard`). Runs PMM Server 3 in Docker, reachable on port 443. Pass its private IP to the PostgreSQL play with `-e pmm_server_ip=<ip>` so the `pg` nodes register against it.
 
-There are 2 machine type aliases, `gr` and `pxc`, both are aliases which will deploy each of the 4 types: `app`, `mysql1`, `mysql2`, and `mysql3`
+There are 3 machine type aliases:
+  * `gr` and `pxc` each deploy the 4 types `app`, `mysql1`, `mysql2`, and `mysql3` (XtraDB Cluster / Group Replication).
+  * `pg` deploys one full PostgreSQL student set: `pg1`, `pg2`, and `pg3`.
+
+> **Security group note (PostgreSQL course):** the training VPC opens only 22/80/443/8080.
+> The `pg` nodes also need intra-VPC traffic on **5432** (PostgreSQL) plus the HA-lab ports
+> **8008** (Patroni REST), **2379/2380** (etcd), **6432** (PgBouncer), and **5000/5001**
+> (HAProxy). Add a self-referencing inbound rule on the training security group (allow all
+> traffic from the SG to itself) before running the replication/HA labs.
 
 ## Set Up Instances
 

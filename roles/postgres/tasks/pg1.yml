@@ -1,0 +1,51 @@
+---
+# pg1-only setup: replication role, sysbench database, Bluebox dataset.
+# All via psql over the local socket as the postgres user (no extra collections).
+
+- name: Create the replicator role (Block 3 replication labs)
+  become: true
+  become_user: postgres
+  ansible.builtin.shell: |
+    psql -tAc "SELECT 1 FROM pg_roles WHERE rolname='replicator'" | grep -q 1 || \
+      psql -c "CREATE ROLE replicator WITH REPLICATION LOGIN ENCRYPTED PASSWORD '{{ pg_replicator_password }}';"
+  changed_when: false
+
+- name: Create sysbench role + database (Block 4 load/monitoring labs)
+  become: true
+  become_user: postgres
+  ansible.builtin.shell: |
+    psql -tAc "SELECT 1 FROM pg_roles WHERE rolname='sysbench'" | grep -q 1 || \
+      psql -c "CREATE USER sysbench WITH LOGIN ENCRYPTED PASSWORD '{{ pg_sysbench_password }}';"
+    psql -tAc "SELECT 1 FROM pg_database WHERE datname='sbtest'" | grep -q 1 || \
+      psql -c "CREATE DATABASE sbtest WITH OWNER=sysbench;"
+  changed_when: false
+
+- name: Download Bluebox dataset
+  become: true
+  become_user: postgres
+  ansible.builtin.get_url:
+    url: "{{ item.url }}"
+    dest: "/tmp/{{ item.name }}"
+  loop:
+    - { url: "{{ bluebox_schema_url }}", name: "bluebox_schema.sql" }
+    - { url: "{{ bluebox_data_url }}",   name: "bluebox_data.sql.gz" }
+  when: bluebox_load | bool
+  ignore_errors: true   # don't fail provisioning if upstream is unreachable
+
+- name: Load Bluebox (idempotent — skips if already populated)
+  become: true
+  become_user: postgres
+  ansible.builtin.shell: |
+    set -e
+    if psql -d bluebox -tAc "SELECT count(*) FROM bluebox.film" 2>/dev/null | grep -qE '[1-9]'; then
+      echo "bluebox already loaded"; exit 0
+    fi
+    createdb bluebox 2>/dev/null || true
+    gunzip -f /tmp/bluebox_data.sql.gz 2>/dev/null || true
+    psql -d bluebox -f /tmp/bluebox_schema.sql
+    psql -d bluebox -f /tmp/bluebox_data.sql
+  args:
+    executable: /bin/bash
+  when: bluebox_load | bool
+  changed_when: false
+  ignore_errors: true
