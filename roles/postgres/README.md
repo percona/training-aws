@@ -24,23 +24,46 @@ pre-baked (standing them up is the point of those labs).
 
 ---
 
-## The provisioning sequence
+## The provisioning sequence — use `make`
 
-Run from your `training-aws` checkout. Example: client tag `ACME`, region `us-west-2`, 8
-students. Do this **the day before class**, not the morning of.
+`make` is the canonical interface (see `make help`). The PostgreSQL class slug is
+**`pg-ops`** (`pg-dev`/`pg-tutorial` are aliases). One `make setup` does the whole thing:
+creates the VPC, launches one `pg` set (pg1/pg2/pg3) per team **plus the shared PMM
+server**, builds the Ansible inventory, and provisions everything. Do this **the day
+before class**, not the morning of.
+
+Example: client tag `ACME`, 8 students, default region `us-west-2`:
 
 | # | Step | Command | ~Time |
 | - | ---- | ------- | ----- |
-| 1 | Create/refresh the VPC (auto-adds the intra-SG self-reference rule the HA labs need) | `./setup-vpc.php -a ADD -r us-west-2 -p ACME` | ~1 min |
-| 2 | Launch the shared PMM server | `./start-instances.php -a ADD -r us-west-2 -p ACME -c 1 -m pmm -i <ami>` | ~2 min to boot |
-| 3 | Launch one `pg` set per student | `./start-instances.php -a ADD -r us-west-2 -p ACME -c 8 -m pg -i <ami>` | ~2–3 min to boot |
-| 4 | Wait for SSH, then build the inventory | `./start-instances.php -a GETANSIBLEHOSTS -r us-west-2 -p ACME > ansible_hosts_acme` | — |
-| 5 | Provision (PMM play runs first, then the pg nodes register to it) | `ansible-playbook -i ansible_hosts_acme hosts.yml -e pmm_server_ip=<pmm-private-ip>` | ~10–15 min |
-| 6 | Smoke-test (below) | — | ~5 min |
-| — | **Tear down after class** | `./start-instances.php -a DROP -r us-west-2 -p ACME -i <ami>`, then delete the VPC | ~3 min |
+| 1 | (Optional) find the current training AMI | `make list-amis` | — |
+| 2 | **Provision the whole class** — VPC + pg sets + shared PMM + Ansible | `make setup class=pg-ops client=ACME teams=8` | ~15–20 min |
+| 3 | Print the connection sheet / dashboard URL | `make summary client=ACME` | — |
+| 4 | Smoke-test (below) | — | ~5 min |
+| — | **Tear down after class** | `make teardown client=ACME` | ~3 min |
 
-> **Order matters in step 5:** `hosts.yml` runs the `pmm` play before the `pg` play and
-> waits for PMM to be ready, so the clients can register. Always pass `-e pmm_server_ip=`.
+Add `region=<aws-region>` to any target to use a non-default region (e.g.
+`make setup class=pg-ops client=ACME teams=8 region=eu-west-1`).
+
+> **What `make setup` wires up for you (no manual steps):** the VPC gets the intra-SG
+> self-reference rule the HA labs need; `hosts.yml` runs the `pmm` play first and waits for
+> PMM to be ready; and the pg play **auto-derives `pmm_server_ip` from the inventory**, so
+> the `pg` nodes register against the shared PMM server with no IP to copy by hand.
+
+<details>
+<summary>Under the hood (what <code>make setup</code> runs, if you ever need to drive it by hand)</summary>
+
+`make setup class=pg-ops …` calls `setup-class.sh`, which runs:
+
+```bash
+./setup-vpc.php       -a ADD -r <region> -p ACME
+./start-instances.php -a ADD -r <region> -p ACME -c 8 -m pg   -i <ami>   # per-team sets
+./start-instances.php -a ADD -r <region> -p ACME -c 1 -m pmm  -i <ami>   # shared PMM
+./start-instances.php -a GETANSIBLEHOSTS -r <region> -p ACME > ansible_hosts_ACME
+ansible-playbook -i ansible_hosts_ACME hosts.yml                          # pmm_server_ip auto-derived
+```
+`make teardown client=ACME` runs the `DROP` actions for the instances **and** the VPC.
+</details>
 
 ---
 

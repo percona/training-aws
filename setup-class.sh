@@ -19,6 +19,7 @@ if [ -z "$CLASS_SLUG" ] || [ -z "$CLIENT" ] || [ -z "$TEAMS" ]; then
 fi
 
 MACHINE_TYPES=""
+NEEDS_PMM=""   # set to 1 for classes that use a shared PMM server (one per class)
 
 case "$CLASS_SLUG" in
     "mysql-ops")
@@ -40,7 +41,8 @@ case "$CLASS_SLUG" in
         MACHINE_TYPES="mongodb"
         ;;
     "pg-ops"|"pg-dev"|"pg-tutorial")
-        MACHINE_TYPES="db1"
+        MACHINE_TYPES="pg"      # alias → pg1,pg2,pg3 (one full set per team)
+        NEEDS_PMM=1             # plus one shared PMM server for the whole class
         ;;
     *)
         echo "Error: Unknown class slug: '$CLASS_SLUG'"
@@ -66,6 +68,11 @@ fi
 
 echo "Using AMI: $LATEST_AMI"
 ./start-instances.php -a ADD -r "$REGION" -p "$CLIENT" -c "$TEAMS" -m "$MACHINE_TYPES" -i "$LATEST_AMI"
+
+if [ "$NEEDS_PMM" = "1" ]; then
+    echo "Launching shared PMM server (one per class)..."
+    ./start-instances.php -a ADD -r "$REGION" -p "$CLIENT" -c 1 -m pmm -i "$LATEST_AMI"
+fi
 
 echo "[3/4] Generating Ansible hosts file..."
 ./start-instances.php -a GETANSIBLEHOSTS -r "$REGION" -p "$CLIENT" > "ansible_hosts_$CLIENT"
