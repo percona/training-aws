@@ -71,6 +71,10 @@ There are multiple "machine types" which are used in different training courses:
   * `pg1`, `pg2`, `pg3`: Used for the **PostgreSQL DBA & Operations** course (Percona Distribution for PostgreSQL 17). `pg1` is the primary (+ sysbench client, first PMM-monitored node); `pg2` is the standby/promoted primary; `pg3` is the pgBackRest repository, DR target, third Patroni node, and runs HAProxy/PgBouncer. Each student should receive 1 of each. Course content lives in `pg-training/` in the `training-material` repo.
   * `pmm`: A shared **PMM Server** (one per class, like `scoreboard`). Runs PMM Server 3 in Docker, reachable on port 443. Pass its private IP to the PostgreSQL play with `-e pmm_server_ip=<ip>` so the `pg` nodes register against it.
 
+> 🐘 **Standing up the PostgreSQL class for the first time?** Start with
+> [`roles/postgres/README.md`](roles/postgres/README.md) — the step-by-step provisioning
+> sequence (with timings), the smoke test, and where to fan out from there.
+
 There are 3 machine type aliases:
   * `gr` and `pxc` each deploy the 4 types `app`, `mysql1`, `mysql2`, and `mysql3` (XtraDB Cluster / Group Replication).
   * `pg` deploys one full PostgreSQL student set: `pg1`, `pg2`, and `pg3`.
