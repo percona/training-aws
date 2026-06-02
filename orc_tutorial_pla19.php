@@ -1,6 +1,20 @@
 #!/usr/bin/env php72
 <?php
 
+/*
+ * DEPRECATED: one-off launcher for the legacy 2019 "PLA19" Orchestrator tutorial.
+ * The hardcoded per-region $pxcAmis below are long stale and will not boot a
+ * current environment. Use the maintained workflow instead, which auto-detects
+ * the latest Percona-Training AMI:
+ *
+ *     ./start-instances.php -a ADD -r <REGION> -p <SUFFIX> -c <N> -m db1,db2
+ *       (or `make setup ...` for a supported class slug)
+ *
+ * Retained for reference only.
+ */
+fwrite(STDERR, "WARNING: orc_tutorial_pla19.php is DEPRECATED and uses stale hardcoded AMIs.\n" .
+               "         Use './start-instances.php ...' or 'make setup ...' instead.\n");
+
 date_default_timezone_set('UTC');
 
 require 'aws.phar';

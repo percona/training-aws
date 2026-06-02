@@ -1,6 +1,21 @@
 #!/usr/bin/env php72
 <?php
 
+/*
+ * DEPRECATED: one-off launcher for the legacy 2019 "PLA19" PXC tutorial.
+ * The hardcoded per-region $pxcAmis below are long stale and will not boot a
+ * current environment. Use the maintained workflow instead, which auto-detects
+ * the latest Percona-Training AMI:
+ *
+ *     make setup class=pxc client=<SUFFIX> teams=<N> region=<REGION>
+ *       -- or --
+ *     ./start-instances.php -a ADD -r <REGION> -p <SUFFIX> -c <N> -m pxc
+ *
+ * Retained for reference only.
+ */
+fwrite(STDERR, "WARNING: launch_pla19_pxc_tutorial.php is DEPRECATED and uses stale hardcoded AMIs.\n" .
+               "         Use 'make setup class=pxc ...' or './start-instances.php ... -m pxc' instead.\n");
+
 date_default_timezone_set('UTC');
 
 require 'aws.phar';
