@@ -16,6 +16,7 @@ maintenance_work_mem = 512MB
 wal_level = replica
 max_wal_senders = 10
 max_replication_slots = 10
+wal_keep_size = 1GB           # retain recent WAL so pg_rewind + slotless standbys survive churn
 wal_log_hints = on            # required by pg_rewind (Block 3)
 checkpoint_timeout = 15min
 max_wal_size = 4GB

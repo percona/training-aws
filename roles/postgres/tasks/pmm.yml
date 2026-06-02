@@ -37,9 +37,17 @@
   changed_when: false
   failed_when: false
 
-- name: Add PostgreSQL to PMM monitoring
+- name: Create pg_stat_monitor view for PMM QAN (in the postgres db)
+  become: true
+  become_user: postgres
+  ansible.builtin.command: psql -d postgres -c "CREATE EXTENSION IF NOT EXISTS pg_stat_monitor;"
+  changed_when: false
+  failed_when: false
+
+- name: Add PostgreSQL to PMM monitoring (pg_stat_monitor query source)
   ansible.builtin.command: >
     pmm-admin add postgresql --username=pmm --password={{ pg_pmm_password }}
+    --query-source=pgstatmonitor
     {{ machinetype }}-{{ team | default('T0') }}-postgresql
   changed_when: false
   failed_when: false

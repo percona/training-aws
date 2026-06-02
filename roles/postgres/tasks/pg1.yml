@@ -1,6 +1,17 @@
 ---
-# pg1-only setup: replication role, sysbench database, Bluebox dataset.
+# pg1-only setup: PostGIS (for Bluebox), replication role, sysbench db, Bluebox dataset.
 # All via psql over the local socket as the postgres user (no extra collections).
+
+# The Bluebox schema requires PostGIS (it creates a topology schema + geography
+# columns). Without it, the schema load aborts and leaves an empty bluebox schema.
+- name: Install PostGIS for the Bluebox dataset (pg1)
+  ansible.builtin.dnf:
+    name:
+      - "percona-postgis33_{{ pg_major }}"
+      - "percona-postgis33_{{ pg_major }}-client"
+    state: present
+    disable_gpg_check: true
+  ignore_errors: true
 
 - name: Create the replicator role (Block 3 replication labs)
   become: true

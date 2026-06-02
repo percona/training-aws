@@ -120,6 +120,14 @@
 - name: Apply any pending config (flush handlers before pg1/pmm steps)
   ansible.builtin.meta: flush_handlers
 
+# pg_rewind (Block 3 lab10) and Patroni (lab12) authenticate as the `postgres`
+# superuser over TCP, so it needs a password. Training-only — never in production.
+- name: Set the postgres superuser password (training)
+  become: true
+  become_user: postgres
+  ansible.builtin.command: psql -c "ALTER USER postgres PASSWORD '{{ pg_superuser_password | default('secret') }}'"
+  changed_when: false
+
 # ---- 5. pg1-only: dataset, sysbench db, replicator role -------------
 - name: pg1 setup (dataset + roles)
   ansible.builtin.include_tasks: pg1.yml
