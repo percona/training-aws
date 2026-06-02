@@ -24,7 +24,7 @@ jobs:
       - name: Install collections
         run: ansible-galaxy collection install community.general community.mysql
       - name: Run ansible-lint
-        run: ansible-lint hosts.yml roles/ || true
+        run: ansible-lint hosts.yml roles/
 
   markdown-lint:
     runs-on: ubuntu-latest
