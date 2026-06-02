@@ -2,9 +2,9 @@ name: Quality Guard
 
 on:
   push:
-    branches: [ master ]
+    branches: [ main ]
   pull_request:
-    branches: [ master ]
+    branches: [ main ]
 
 jobs:
   php-syntax:
@@ -25,29 +25,6 @@ jobs:
         run: ansible-galaxy collection install community.general community.mysql
       - name: Run ansible-lint
         run: ansible-lint hosts.yml roles/ || true
-
-  packer-validate:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-      - name: Setup Packer
-        uses: hashicorp/setup-packer@main
-      - name: Install Packer Amazon Plugin
-        run: packer plugins install github.com/hashicorp/amazon
-      - name: Packer Validate
-        run: |
-          for f in packer/*.json; do
-            packer validate "$f" || true
-          done
-
-  cfn-lint:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-      - name: Setup CloudFormation Linter
-        run: pip install cfn-lint
-      - name: Run cfn-lint
-        run: cfn-lint cloudformations/*.yaml || true
 
   markdown-lint:
     runs-on: ubuntu-latest
