@@ -7,7 +7,6 @@ use Aws\DynamoDb\Exception\DynamoDbException;
 use Aws\DynamoDb\Marshaler;
 
 $dynamo = Aws\DynamoDb\DynamoDbClient::factory(array(
-	'profile' => 'default',
     'region'  => 'us-east-1',
     'version' => 'latest'));
 

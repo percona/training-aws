@@ -31,22 +31,23 @@ TOOLKIT
 
 echo "### Install Percona Repo"
 dnf install -y http://repo.percona.com/yum/percona-release-latest.noarch.rpm
-percona-release setup ps80 -y
+percona-release setup ps-84-lts
+percona-release enable pmm3-client
 percona-release enable tools
 
 # Disable telemetry
 export PERCONA_TELEMETRY_DISABLE=1
 
-echo "### Install Percona Server 8.0.39"
+echo "### Install Percona Server 8.4.7"
 dnf -y install yum-plugin-versionlock
-dnf versionlock percona-server-*-8.0.39
+dnf versionlock percona-server-*-8.4.7
 dnf install -y \
 	percona-server-server.x86_64 \
 	percona-server-client.x86_64 \
 	percona-mysql-shell.x86_64 \
 	percona-server-rocksdb.x86_64 \
 	percona-server-shared.x86_64 \
-	percona-xtrabackup-80.x86_64 \
+	percona-xtrabackup-84.x86_64 \
 	percona-toolkit.x86_64 \
 	qpress \
 	perl-DBD-MySQL
@@ -58,10 +59,11 @@ systemctl disable percona-telemetry-agent
 # Download/install xtrabackup of IMDB/world/sakila
 echo "### Downloading backup from S3..."
 mkdir -p /var/lib/mysql
-curl -sS https://s3.amazonaws.com/percona-training/imdb_world_sakila_20241227.xbs | xbstream -C /var/lib/mysql -xv
+rm -rf /var/lib/mysql/*
+curl -sS https://s3.amazonaws.com/percona-training/imdb_world_sakila_20260320.xbs | xbstream -C /var/lib/mysql -xv
 
-echo "### Decompressing .qp files..."
-xtrabackup --decompress --remove-original --parallel 4 --compress-threads 4 --target-dir /var/lib/mysql/
+echo "### Decompressing .zst files..."
+xtrabackup --decompress --remove-original --parallel 4 --target-dir /var/lib/mysql/
 
 echo "### Preparing backup..."
 xtrabackup --prepare --target-dir /var/lib/mysql/
@@ -70,7 +72,8 @@ echo "### Fix permissions..."
 chown -R mysql:mysql /var/lib/mysql
 
 echo "### Installing /etc/my.cnf"
-mv /tmp/my.cnf /etc/my.cnf
+mv -f /tmp/my.cnf /etc/my.cnf
+chown mysql /etc/my.cnf && restorecon -v /etc/my.cnf
 
 echo "### Install SSL Certs"
 mkdir -p /etc/ssl/mysql
@@ -78,6 +81,7 @@ mv /tmp/*.pem /etc/ssl/mysql/
 chown mysql:mysql /etc/ssl/mysql/*.pem
 chmod 644 /etc/ssl/mysql/*.pem
 chmod 600 /etc/ssl/mysql/ca-key.pem
+restorecon -v /etc/ssl/mysql/*.pem
 
 echo "### Component Keyring File config"
 echo '{ "components": "file://component_keyring_file" }' >/sbin/mysqld.my
@@ -88,49 +92,47 @@ echo "### Starting MySQL..."
 systemctl start mysql
 sleep 10 && journalctl -n 10 -u mysqld --no-pager && tail -50 /var/log/mysqld.log
 
-echo "### Remove Backup Files"
-mysql -uroot -pPerc0na1234# -BNe "SELECT COUNT(*) FROM world.city" >/dev/null
-if [ $? -eq 0 ]; then
-  rm -rf /root/imdb_world_sakila_20241227.xbs /var/lib/mysql/xtrabackup_*
-fi
-
 echo "### Create root/imdb/sysbench user"
 cat <<- EOF | mysql -uroot -pPerc0na1234#
 
 	CREATE DATABASE IF NOT EXISTS sysbench;
 
 	DROP USER IF EXISTS 'sbuser'@'localhost';
-	CREATE USER 'sbuser'@'localhost' IDENTIFIED WITH mysql_native_password BY 'sbPass1234#';
+	CREATE USER 'sbuser'@'localhost' IDENTIFIED BY 'sbPass1234#';
 	GRANT ALL ON sysbench.* TO 'sbuser'@'localhost';
 
 	DROP USER IF EXISTS 'sbuser'@'10.%';
-	CREATE USER 'sbuser'@'10.%' IDENTIFIED WITH mysql_native_password BY 'sbPass1234#';
+	CREATE USER 'sbuser'@'10.%' IDENTIFIED BY 'sbPass1234#';
 	GRANT ALL ON sysbench.* TO 'sbuser'@'10.%';
 
 	DROP USER IF EXISTS 'imdb'@'localhost';
-	CREATE USER 'imdb'@'localhost' IDENTIFIED WITH mysql_native_password BY 'imDb1234#';
+	CREATE USER 'imdb'@'localhost' IDENTIFIED BY 'imDb1234#';
 	GRANT ALL ON imdb.* TO 'imdb'@'localhost';
 
 	DROP USER IF EXISTS 'imdb'@'10.%';
-	CREATE USER 'imdb'@'10.%' IDENTIFIED WITH mysql_native_password BY 'imDb1234#';
+	CREATE USER 'imdb'@'10.%' IDENTIFIED BY 'imDb1234#';
 	GRANT ALL ON imdb.* TO 'imdb'@'10.%';
 
-	CREATE USER IF NOT EXISTS 'root'@'127.0.0.1' IDENTIFIED WITH mysql_native_password BY 'Perc0na1234#';
+	CREATE USER IF NOT EXISTS 'root'@'127.0.0.1' IDENTIFIED BY 'Perc0na1234#';
 	GRANT ALL PRIVILEGES ON *.* TO 'root'@'127.0.0.1';
 
-	ALTER USER 'root'@'localhost' IDENTIFIED WITH mysql_native_password BY 'Perc0na1234#';
+	ALTER USER 'root'@'localhost' IDENTIFIED BY 'Perc0na1234#';
 
 	DELETE FROM mysql.user WHERE user = '';
 	DELETE FROM mysql.user WHERE authentication_string = '';
 
-	FLUSH PRIVILEGES; FLUSH LOGS; RESET MASTER;
+	ALTER INSTANCE ROTATE INNODB MASTER KEY;
+
+	FLUSH PRIVILEGES; FLUSH LOGS; RESET BINARY LOGS AND GTIDS;
 EOF
 
 echo "### MySQL shutdown"
 systemctl stop mysql
-rm -f /var/lib/mysql/auto.cnf /var/lib/mysql/backup-my.cnf /var/lib/mysql/slow.log \
-      /var/lib/mysql/binlog.* /var/lib/mysql/mysqld-bin.* /var/lib/mysql/*.pem
-rm -f /var/log/mysqld.log
+rm -rf /var/lib/mysql/auto.cnf /var/lib/mysql/backup-my.cnf /var/lib/mysql/slow.log \
+      /var/lib/mysql/binlog.* /var/lib/mysql/mysqld-bin.* /var/lib/mysql/*.pem \
+      /var/lib/mysql/xtrabackup_* /var/log/mysqld.log /root/.mysql_history /home/rocky/.mysql_history
+
+rm -f /root/.bash_history /home/rocky/.bash_history
 
 echo "### Install sysbench Scripts"
 mv /tmp/{prepare_sysbench.sh,run_imdb_workload.sh,run_sysbench_oltp.sh} /usr/local/bin/
