@@ -1,0 +1,44 @@
+# PMM Server 3 — in-cluster monitoring server for the ps-operator class (lab7).
+# Pre-staged so lab7 is a reliable hands-on step: students mint a service-account
+# token, enable the operator's PMM sidecar (spec.pmm.serverHost: pmm.pmm.svc), and
+# watch the cluster register. Adds ~1.5-2 GB to the jumphost footprint.
+# UI: kubectl -n pmm port-forward svc/pmm 8443:443  -> https://localhost:8443 (admin/admin)
+apiVersion: v1
+kind: Namespace
+metadata: { name: pmm }
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata: { name: pmm-server, namespace: pmm }
+spec:
+  replicas: 1
+  selector: { matchLabels: { app: pmm-server } }
+  template:
+    metadata: { labels: { app: pmm-server } }
+    spec:
+      containers:
+      - name: pmm-server
+        image: percona/pmm-server:3
+        ports:
+        - { containerPort: 8443 }   # HTTPS UI/API
+        - { containerPort: 8080 }   # HTTP
+        readinessProbe:
+          httpGet: { path: /v1/readyz, port: 8443, scheme: HTTPS }
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          failureThreshold: 30
+        resources:
+          requests: { memory: 1500Mi, cpu: 500m }
+        volumeMounts:
+        - { name: data, mountPath: /srv }
+      volumes:
+      - { name: data, emptyDir: {} }   # training only; PVC for persistence in a long-lived setup
+---
+apiVersion: v1
+kind: Service
+metadata: { name: pmm, namespace: pmm }
+spec:
+  selector: { app: pmm-server }
+  ports:
+  - { name: https, port: 443, targetPort: 8443 }
+  - { name: http,  port: 80,  targetPort: 8080 }

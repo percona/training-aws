@@ -196,6 +196,28 @@
     path: /root/.garage_applied
     state: touch
 
+# --- PMM Server (in-cluster, for lab7) ---
+
+- name: stage PMM Server manifest
+  copy:
+    src: pmm-server.yaml
+    dest: /root/pmm-server.yaml
+    mode: "0644"
+
+- name: apply PMM Server manifest
+  shell: /usr/local/bin/kubectl apply -f /root/pmm-server.yaml
+  args:
+    creates: /root/.pmm_applied
+
+- name: wait for PMM Server ready (image pull + startup can take a few minutes)
+  shell: /usr/local/bin/kubectl -n pmm rollout status deploy/pmm-server --timeout=420s
+  changed_when: false
+
+- name: mark PMM as applied
+  file:
+    path: /root/.pmm_applied
+    state: touch
+
 # --- Clone the PS operator repo for the student ---
 
 - name: ensure lab-assets directory
@@ -238,6 +260,9 @@
         - secret key:  `{{ garage_secret_key }}`
         - bucket:      `{{ garage_bucket }}`
         - endpointUrl: `http://garage.garage.svc:3900`
+      - **PMM Server 3** (namespace `pmm`, Service `pmm:443`) for Lab 7
+        - UI: `kubectl -n pmm port-forward svc/pmm 8443:443` → https://localhost:8443 (admin/admin)
+        - CR `spec.pmm.serverHost`: `pmm.pmm.svc`
       - **percona-server-mysql-operator** repo cloned at `{{ ps_operator_version }}`
         in `./percona-server-mysql-operator/` — the operator is NOT applied
         (Lab 1 work)
