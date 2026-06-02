@@ -1,0 +1,16 @@
+profile: min
+warn_list:
+  - command-instead-of-module
+  - inline-env-var
+  - jinja
+  - name
+  - var-naming
+  - latest
+  - package-latest
+  - risky-file-permissions
+  - risky-shell-pipe
+  - ignore-errors
+  - no-changed-when
+  - no-handler
+  - run-once
+  - yaml
