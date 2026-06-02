@@ -156,14 +156,30 @@ function removeInstances()
 {
 	global $ec2, $options, $config;
 
-	// search for all instances that match our name pattern
+	// Named instances for this client (also used to derive DynamoDB keys).
 	$reservations = searchInstanceMetadataForTag($options['suffix']);
 
-	$instanceIds = array();
-	$instanceNames = array();
 	$frontLength = strlen("Percona-Training-");
+	$namedIds = array();
+	$instanceNames = array();
+	$nameById = array();
 
-	if (count($reservations) < 1)
+	foreach($reservations as $instance)
+	{
+		$namedIds[] = $instance['InstanceId'];
+		$nameById[$instance['InstanceId']] = $instance['Hostname'];
+
+		list($teamTag, $machineType, $teamId) = explode("-", substr($instance['Hostname'], $frontLength));
+		$instanceNames[] = sprintf("%s-%d", strtolower($teamTag), substr($teamId, 1));
+	}
+
+	// Also sweep the client's VPC directly so instances that lost their Name tag
+	// (e.g. a failed tag at creation) are not missed and left running/billing.
+	$vpcIds = getAllInstanceIdsInVpc();
+	$untaggedIds = array_values(array_diff($vpcIds, $namedIds));
+	$allIds = array_values(array_unique(array_merge($namedIds, $untaggedIds)));
+
+	if (count($allIds) < 1)
 	{
 		printf("No instances were found.\n");
 		return;
@@ -171,18 +187,14 @@ function removeInstances()
 
 	printf("The following instances were found:\n\n");
 
-	foreach($reservations as $instance)
-	{
-		$instanceIds[] = $instance['InstanceId'];
+	foreach($namedIds as $id)
+		printf("-- %s - %s\n", $id, $nameById[$id]);
 
-		list($teamTag, $machineType, $teamId) = explode("-", substr($instance['Hostname'], $frontLength));
-		$instanceNames[] = sprintf("%s-%d", strtolower($teamTag), substr($teamId, 1));
+	foreach($untaggedIds as $id)
+		printf("-- %s - (UNTAGGED, found in VPC %s)\n", $id,
+			isset($config['Vpc']['VpcId']) ? $config['Vpc']['VpcId'] : '?');
 
-		printf("-- %s - %s\n",
-			$instance['InstanceId'], $instance['Hostname']);
-	}
-
-	printf("\n- Confirm to STOP AND TERMINATE/DROP:\n");
+	printf("\n- Confirm to STOP AND TERMINATE/DROP %d instance(s):\n", count($allIds));
 	printf("- (y/n) - ");
 
 	if(getYesNoResponse())
@@ -192,13 +204,13 @@ function removeInstances()
 			printf("- Terminating...\n");
 
 			$res = $ec2->terminateInstances(array(
-				'InstanceIds' => $instanceIds
+				'InstanceIds' => $allIds
 			));
 
 			printf("- Waiting for termination confirmation...\n");
 
 			$res = $ec2->waitUntil('InstanceTerminated', array(
-				'InstanceIds' => $instanceIds
+				'InstanceIds' => $allIds
 			));
 
 			printf("- Instances have been terminated. They may still be visable for up to 1 hour in the console/API.\n");
@@ -215,6 +227,31 @@ function removeInstances()
 	{
 		printf("-- ABORTED --\n");
 	}
+}
+
+// Returns the IDs of all non-terminated instances in this client's VPC.
+// Used by teardown so untagged instances are not missed. Returns an empty
+// array if the VPC id is not known (no saved config).
+function getAllInstanceIdsInVpc()
+{
+	global $ec2, $config;
+
+	if (!isset($config['Vpc']['VpcId']))
+		return array();
+
+	$res = $ec2->describeInstances([
+		'Filters' => [
+			['Name' => 'vpc-id', 'Values' => [$config['Vpc']['VpcId']]],
+			['Name' => 'instance-state-name', 'Values' => ['pending', 'running', 'stopping', 'stopped']],
+		],
+	]);
+
+	$ids = array();
+	foreach ($res->get('Reservations') as $r)
+		foreach ($r['Instances'] as $i)
+			$ids[] = $i['InstanceId'];
+
+	return $ids;
 }
 
 function syncDynamo()
