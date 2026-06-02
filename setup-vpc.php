@@ -22,6 +22,7 @@ $subnet_map = array(
 $ec2 = new Ec2Client([
 	'region' => $config['Region'] ?? $options['region'],
 	'version'=> 'latest',
+	'retries'=> ['mode' => 'adaptive', 'max_attempts' => 10],
 ]);
 
 switch($options['action'])
