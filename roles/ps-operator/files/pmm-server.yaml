@@ -29,6 +29,7 @@ spec:
           failureThreshold: 30
         resources:
           requests: { memory: 1500Mi, cpu: 500m }
+          limits:   { memory: 4Gi,    cpu: "2" }
         volumeMounts:
         - { name: data, mountPath: /srv }
       volumes:
