@@ -80,6 +80,21 @@ fi
 echo "[3/4] Generating Ansible hosts file..."
 ./start-instances.php -a GETANSIBLEHOSTS -r "$REGION" -p "$CLIENT" > "ansible_hosts_$CLIENT"
 
+echo "[3.5/4] Waiting for SSH to come up on all instances..."
+# EC2 reports "running" ~30-60s before sshd accepts connections; without this wait
+# Ansible runs immediately and every host comes back UNREACHABLE.
+HOSTS=$(awk -F'ansible_ssh_host=' '/ansible_ssh_host=/ {split($2,a," "); print a[1]}' "ansible_hosts_$CLIENT")
+for h in $HOSTS; do
+    printf "  -- %s " "$h"
+    for i in $(seq 1 30); do
+        if ssh -i Percona-Training.key -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
+               -o ConnectTimeout=5 -o BatchMode=yes rocky@"$h" 'true' 2>/dev/null; then
+            echo "ready"; break
+        fi
+        printf "."; sleep 10
+    done
+done
+
 echo "[4/4] Provisioning with Ansible..."
 ansible-playbook -i "ansible_hosts_$CLIENT" hosts.yml
 
