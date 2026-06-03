@@ -57,9 +57,12 @@ echo "[1/4] Creating VPC..."
 ./setup-vpc.php -a ADD -r "$REGION" -p "$CLIENT"
 
 echo "[2/4] Launching Instances..."
-# For simplicity, we assume the user already knows the AMI or we pick a generic one. But normally we should fetch the latest.
-# Let's try to get the first AMI listed from start-instances.php.
-LATEST_AMI=$(./start-instances.php -a ADD -r "$REGION" -p dummy -c 1 -m db1 2>&1 | grep "AMI" | grep -v 'Name' | head -n 1 | awk '{print $NF}')
+# Fetch the latest Percona-Training AMI. start-instances.php in ADD mode without -i
+# prints the AMI list (sorted ascending by name/date) and exits, so we use that as the
+# lookup. We must take the LAST line ('tail -n 1' = newest AMI) — the banner line
+# "You must set the AMI (-i)..." also contains "AMI", so 'head -n 1' grabs that instead
+# and yields a non-AMI value.
+LATEST_AMI=$(./start-instances.php -a ADD -r "$REGION" -p dummy -c 1 -m db1 2>&1 | grep " - ami-" | grep -v 'Name' | tail -n 1 | awk '{print $NF}')
 
 if [[ "$LATEST_AMI" != ami-* ]]; then
     echo "Could not detect the latest AMI automatically. Please update setup-class.sh or pass an AMI manually."
