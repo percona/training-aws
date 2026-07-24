@@ -1,0 +1,11 @@
+---
+# Tasks for setting up proxysql2
+
+- name: Enable ProxySQL repo
+  shell: >
+    percona-release enable proxysql
+
+- name: Install ProxySQL2
+  dnf:
+    state: latest
+    name: proxysql2
