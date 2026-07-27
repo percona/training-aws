@@ -11,6 +11,14 @@ use Cake\Console\ConsoleOptionParser;
 class CreateClassCommand extends BaseCommand
 {
 	/**
+	 * Returns the description of the command
+	 */
+	public static function getDescription(): string
+	{
+		return 'Create a new class, including the VPC, instances, and Ansible configuration';
+	}
+
+	/**
 	 * Configures arguments, and options for the command
 	 */
 	protected function buildOptionParser(ConsoleOptionParser $parser): ConsoleOptionParser
@@ -73,14 +81,14 @@ class CreateClassCommand extends BaseCommand
 	 */
 	public function execute(Arguments $args, ConsoleIo $io): ?int
 	{
-		// Validate options
-		$slug   = $args->getArgument('slug') ?: $io->abort('Missing slug parameter. See --help');
-		$region = $args->getArgument('region') ?: $io->abort('Missing region parameter. See --help');
-		$class  = $args->getArgument('class') ?: $io->abort('Missing class parameter. See --help');
-		$count  = $args->getArgument('count') ?: $io->abort('Missing student count parameter. See --help');
+		// Get arguments
+		$slug   = $args->getArgument('slug');
+		$region = $args->getArgument('region');
+		$class  = $args->getArgument('class');
+		$count  = $args->getArgument('count');
 
 		// @var int $count
-		$count = intval($args->getArgument('count'));
+		$count = intval($count);
 
 		// @var string $ami
 		$ami = (string)$args->getArgument('ami');

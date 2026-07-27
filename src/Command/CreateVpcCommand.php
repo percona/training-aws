@@ -20,6 +20,14 @@ class CreateVpcCommand extends BaseCommand
 	private Learnomancer\AwsClient $ec2;
 
 	/**
+	 * Returns the description of the command
+	 */
+	public static function getDescription(): string
+	{
+		return 'Create a VPC for a new class';
+	}
+
+	/**
 	 * Configures arguments, and options for the command
 	 */
 	protected function buildOptionParser(ConsoleOptionParser $parser): ConsoleOptionParser
@@ -58,9 +66,9 @@ class CreateVpcCommand extends BaseCommand
 	 */
 	public function execute(Arguments $args, ConsoleIo $io): ?int
 	{
-		// Validate arguments
-		$slug   = $args->getArgument('slug') ?: $io->abort('Missing slug parameter');
-		$region = $args->getArgument('region') ?: $io->abort('Missing region parameter');
+		// Get arguments
+		$slug   = $args->getArgument('slug');
+		$region = $args->getArgument('region');
 
 		// Load VPC config
 		try

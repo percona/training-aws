@@ -13,6 +13,14 @@ use Learnomancer;
 class SyncDynamoCommand extends BaseCommand
 {
 	/**
+	 * Returns the description of the command
+	 */
+	public static function getDescription(): string
+	{
+		return 'Sync instance information to DynamoDB (rarely needed)';
+	}
+
+	/**
 	 * Configures arguments, and options for the command
 	 */
 	protected function buildOptionParser(ConsoleOptionParser $parser): ConsoleOptionParser
@@ -38,9 +46,9 @@ class SyncDynamoCommand extends BaseCommand
 	 */
 	public function execute(Arguments $args, ConsoleIo $io): ?int
 	{
-		// Validate options
-		$slug   = $args->getArgument('slug') ?: $io->abort('Missing slug parameter');
-		$region = $args->getArgument('region') ?: $io->abort('Missing region parameter');
+		// Get arguments
+		$slug   = $args->getArgument('slug');
+		$region = $args->getArgument('region');
 
 		try
 		{

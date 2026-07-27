@@ -13,6 +13,14 @@ use Learnomancer;
 class ListAmisCommand extends BaseCommand
 {
 	/**
+	 * Returns the description of the command
+	 */
+	public static function getDescription(): string
+	{
+		return 'List available AMIs for a given region';
+	}
+
+	/**
 	 * Configures arguments, and options for the command
 	 */
 	protected function buildOptionParser(ConsoleOptionParser $parser): ConsoleOptionParser
@@ -34,8 +42,11 @@ class ListAmisCommand extends BaseCommand
 	 */
 	public function execute(Arguments $args, ConsoleIo $io): ?int
 	{
-		// Validate options
-		$region = $args->getArgument('region') ?: $io->abort('Missing region parameter');
+		// Get arguments
+		$region = $args->getArgument('region');
+
+		/** @var \Learnomancer\Command\Helper\TableHelper $tableHelper */
+		$tableHelper = $io->helper('Learnomancer\Command\Helper\TableHelper');
 
 		try
 		{
@@ -49,19 +60,15 @@ class ListAmisCommand extends BaseCommand
 				return static::CODE_SUCCESS;
 			}
 
-			// Display
-			$io->out();
-			$io->out(str_repeat('-', 31) . '+' . str_repeat('-', 24));
-			$io->out(sprintf('%-30s | %s', 'Name', 'AMI Id'));
-			$io->out(str_repeat('-', 31) . '+' . str_repeat('-', 24));
+			$tableData = [['Name', 'AMI Id']];
 
 			foreach ($amis as $ami)
 			{
-				$name = $ami['Name'] ?: '-- None --';
-				$io->out(sprintf('%-30s | %s', $name, $ami['ImageId']));
+				$tableData[] = [$ami['Name'], $ami['ImageId']];
 			}
 
-			$io->out(str_repeat('-', 31) . '+' . str_repeat('-', 24));
+			$io->out("========== Listing AMIs in '{$region}' ==========");
+			$tableHelper->output($tableData);
 		}
 		catch (Learnomancer\LearnomancerException | Exception $e)
 		{

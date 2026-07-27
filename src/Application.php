@@ -53,10 +53,12 @@ final class Application implements ConsoleApplicationInterface
 	{
 		$commands->add('list-instances', Command\ListInstancesCommand::class);
 		$commands->add('list-amis', Command\ListAmisCommand::class);
+		$commands->add('list-vpcs', Command\ListVpcsCommand::class);
 
 		$commands->add('ansible-config', Command\AnsibleConfigCommand::class);
 		$commands->add('ssh-config', Command\SshConfigCommand::class);
 		$commands->add('sync-dynamo', Command\SyncDynamoCommand::class);
+		$commands->add('vpc-config', Command\VpcConfigCommand::class);
 		$commands->add('summary', Command\ClassSummaryCommand::class);
 
 		$commands->add('create-class', Command\CreateClassCommand::class);

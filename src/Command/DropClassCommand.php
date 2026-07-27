@@ -11,6 +11,14 @@ use Cake\Console\ConsoleOptionParser;
 class DropClassCommand extends BaseCommand
 {
 	/**
+	 * Returns the description of the command
+	 */
+	public static function getDescription(): string
+	{
+		return 'Drop an existing class, including the VPC, instances, and related resources';
+	}
+
+	/**
 	 * Configures arguments, and options for the command
 	 */
 	protected function buildOptionParser(ConsoleOptionParser $parser): ConsoleOptionParser
@@ -48,9 +56,9 @@ class DropClassCommand extends BaseCommand
 	 */
 	public function execute(Arguments $args, ConsoleIo $io): ?int
 	{
-		// Validate options
-		$slug   = $args->getArgument('slug') ?: $io->abort('Missing slug parameter. See --help');
-		$region = $args->getArgument('region') ?: $io->abort('Missing region parameter. See --help');
+		// Get arguments
+		$slug   = $args->getArgument('slug');
+		$region = $args->getArgument('region');
 
 		// Call the create-instances command
 		$res = $this->executeCommand(DropInstancesCommand::class, [$slug, $region], $io);

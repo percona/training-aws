@@ -11,6 +11,14 @@ use Cake\Console\ConsoleOptionParser;
 class ClassSummaryCommand extends BaseCommand
 {
 	/**
+	 * Returns the description of the command
+	 */
+	public static function getDescription(): string
+	{
+		return 'Output summary of a given class, including the class dashboard, and SSH info';
+	}
+
+	/**
 	 * Configures arguments, and options for the command
 	 */
 	protected function buildOptionParser(ConsoleOptionParser $parser): ConsoleOptionParser
@@ -32,8 +40,8 @@ class ClassSummaryCommand extends BaseCommand
 	 */
 	public function execute(Arguments $args, ConsoleIo $io): ?int
 	{
-		// Validate options
-		$slug = $args->getArgument('slug') ?: $io->abort('Missing slug parameter');
+		// Get arguments
+		$slug = $args->getArgument('slug');
 
 		$io->out([
 			'=================================================================',

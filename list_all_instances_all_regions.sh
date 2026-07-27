@@ -3,7 +3,7 @@
 echo `date` >all_instances_all_regions.txt
 
 echo "Fetching AWS Regions..."
-regions=($(aws ec2 describe-regions --output text | cut -f4))
+regions=($(aws ec2 describe-regions --region us-east-1 --output text | cut -f4))
 
 # Loop over regions
 for region in ${regions[@]}; do

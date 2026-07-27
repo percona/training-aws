@@ -157,17 +157,37 @@ final class AwsClient
 	}
 
 	/**
-	 * Search for an internet gateway
+	 * Search for an internet gateway by internet gateway ID
 	 *
 	 * @return array{GatewayId: string, VpcId: string, State: string}
 	 */
 	public function getGatewayById(string $gatewayId): array
 	{
+		return $this->searchGatewayByFilter('internet-gateway-id', $gatewayId);
+	}
+
+	/**
+	 * Search for an internet gateway by internet gateway name
+	 *
+	 * @return array{GatewayId: string, VpcId: string, State: string}
+	 */
+	public function getGatewayByName(string $gatewayName): array
+	{
+		return $this->searchGatewayByFilter('tag:Name', $gatewayName);
+	}
+
+	/**
+	 * Search for an internet gateway by filter name and value
+	 *
+	 * @return array{GatewayId: string, VpcId: string, State: string}
+	 */
+	public function searchGatewayByFilter(string $filterName, string $filterValue): array
+	{
 		$res = $this->client->describeInternetGateways([
 			'Filters' => [
 				[
-					'Name' => 'internet-gateway-id',
-					'Values' => [$gatewayId],
+					'Name' => $filterName,
+					'Values' => [$filterValue],
 				],
 			],
 		]);
@@ -195,17 +215,37 @@ final class AwsClient
 	}
 
 	/**
-	 * Search for route table by ID
+	 * Search for route table by route table name
+	 *
+	 * @return array{RouteTableId: string, VpcId: string}
+	 */
+	public function getRouteTableByName(string $routeTableName): array
+	{
+		return $this->searchRouteTable('tag:Name', $routeTableName);
+	}
+
+	/**
+	 * Search for route table by route table ID
 	 *
 	 * @return array{RouteTableId: string, VpcId: string}
 	 */
 	public function getRouteTableById(string $routeTableId): array
 	{
+		return $this->searchRouteTable('route-table-id', $routeTableId);
+	}
+
+	/**
+	 * Search for route table by filter name and value
+	 *
+	 * @return array{RouteTableId: string, VpcId: string}
+	 */
+	private function searchRouteTable(string $filterName, string $filterValue): array
+	{
 		$res = $this->client->describeRouteTables([
 			'Filters' => [
 				[
-					'Name' => 'route-table-id',
-					'Values' => [$routeTableId],
+					'Name' => $filterName,
+					'Values' => [$filterValue],
 				],
 			],
 		]);
@@ -248,18 +288,37 @@ final class AwsClient
 	}
 
 	/**
-	 * Search for subnet with subnet id
+	 * Search for subnet by subnet name
+	 *
+	 * @return array{SubnetId: string, VpcId: string}
+	 */
+	public function getSubnetByName(string $subnetName): array
+	{
+		return $this->searchSubnet('tag:Name', $subnetName);
+	}
+
+	/**
+	 * Search for subnet by subnet ID
 	 *
 	 * @return array{SubnetId: string, VpcId: string}
 	 */
 	public function getSubnetById(string $subnetId): array
 	{
-		// Search for subnet
+		return $this->searchSubnet('subnet-id', $subnetId);
+	}
+
+	/**
+	 * Search for subnet by filter name and value
+	 *
+	 * @return array{SubnetId: string, VpcId: string}
+	 */
+	private function searchSubnet(string $filterName, string $filterValue): array
+	{
 		$res = $this->client->describeSubnets([
 			'Filters' => [
 				[
-					'Name' => 'subnet-id',
-					'Values' => [$subnetId],
+					'Name' => $filterName,
+					'Values' => [$filterValue],
 				],
 			],
 		]);
@@ -488,6 +547,22 @@ final class AwsClient
 		return $vpcId;
 	}
 
+
+	/**
+	 * List VPCs
+	 *
+	 * @return array<array{VpcId: string, Name: string}>
+	 */
+	public function listVpcs(): array
+	{
+		$res = $this->client->describeVpcs();
+
+		/** @var array<array{VpcId: string, Name: string}> $vpcs */
+		$vpcs = $res->get('Vpcs');
+
+		return $vpcs;
+	}
+
 	/**
 	 * Create a number of instances using an AMI image in a VPC (ie: subnet)
 	 *
@@ -685,6 +760,19 @@ final class AwsClient
 				],
 			],
 		]);
+	}
+
+	/**
+	 * Return list of all AWS regions
+	 */
+	public function listRegions(): array
+	{
+		$res = $this->client->describeRegions();
+
+		/** @var array<array{RegionName: string}> $regions */
+		$regions = $res->get('Regions');
+
+		return $regions;
 	}
 
 	/**

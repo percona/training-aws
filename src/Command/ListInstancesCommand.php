@@ -13,6 +13,14 @@ use Learnomancer;
 class ListInstancesCommand extends BaseCommand
 {
 	/**
+	 * Returns the description of the command
+	 */
+	public static function getDescription(): string
+	{
+		return 'List currently running instances for an existing class';
+	}
+
+	/**
 	 * Configures arguments, and options for the command
 	 */
 	protected function buildOptionParser(ConsoleOptionParser $parser): ConsoleOptionParser
@@ -38,34 +46,38 @@ class ListInstancesCommand extends BaseCommand
 	 */
 	public function execute(Arguments $args, ConsoleIo $io): ?int
 	{
-		// Validate options
-		$slug   = $args->getArgument('slug') ?: $io->abort('Missing slug parameter');
-		$region = $args->getArgument('region') ?: $io->abort('Missing region parameter');
+		// Get arguments
+		$slug   = $args->getArgument('slug');
+		$region = $args->getArgument('region');
+
+		/** @var \Learnomancer\Command\Helper\TableHelper $tableHelper */
+		$tableHelper = $io->helper('Learnomancer\Command\Helper\TableHelper');
 
 		try
 		{
-			$ec2          = new Learnomancer\AwsClient($region);
-			$reservations = $ec2->getInstancesBySlug($slug);
+			$ec2       = new Learnomancer\AwsClient($region);
+			$instances = $ec2->getInstancesBySlug($slug);
 
-			if (empty($reservations))
+			if (empty($instances))
 			{
 				$io->warning("! No instances found for '{$slug}' in '{$region}'\n");
 
 				return static::CODE_SUCCESS;
 			}
 
-			$frontLength = strlen("Percona-Training-{$slug}-");
+			$tableData = [['InstanceId', 'Hostname', 'PublicIpAddress']];
 
-			foreach ($reservations as $instance)
+			foreach ($instances as $instance)
 			{
-				$fullName     = $instance['Hostname'];
-				$typeTeamName = substr($fullName, $frontLength);
-				$io->out(sprintf('%-15s %-30s %-10s', $instance['PublicIpAddress'], $fullName, $typeTeamName));
+				$tableData[] = [$instance['InstanceId'], $instance['Hostname'], $instance['PublicIpAddress']];
 			}
+
+			$io->out("========== Listing instances for '{$slug}' in '{$region}' ==========");
+			$tableHelper->output($tableData);
 		}
 		catch (Learnomancer\LearnomancerException | Exception $e)
 		{
-			$io->error("** Unable to create VPC: {$e->getMessage()}**");
+			$io->error("** Unable to list instances: {$e->getMessage()}**");
 
 			return static::CODE_ERROR;
 		}

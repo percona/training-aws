@@ -13,6 +13,14 @@ use Learnomancer;
 class SshConfigCommand extends BaseCommand
 {
 	/**
+	 * Returns the description of the command
+	 */
+	public static function getDescription(): string
+	{
+		return 'Generate an SSH config file for an existing class';
+	}
+
+	/**
 	 * Configures arguments, and options for the command
 	 */
 	protected function buildOptionParser(ConsoleOptionParser $parser): ConsoleOptionParser
@@ -49,9 +57,9 @@ class SshConfigCommand extends BaseCommand
 	 */
 	public function execute(Arguments $args, ConsoleIo $io): ?int
 	{
-		// Validate options
-		$slug   = $args->getArgument('slug') ?: $io->abort('Missing slug parameter');
-		$region = $args->getArgument('region') ?: $io->abort('Missing region parameter');
+		// Get arguments
+		$slug   = $args->getArgument('slug');
+		$region = $args->getArgument('region');
 
 		try
 		{
