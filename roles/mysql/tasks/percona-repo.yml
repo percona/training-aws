@@ -6,14 +6,13 @@
     name:
       - http://repo.percona.com/yum/percona-release-latest.noarch.rpm
 
-  - name: Enable PS84, toolkit and PMM3 Repos
-    shell: >
-      percona-release setup ps-84-lts
-      percona-release enable pxb-84-lts && percona-release enable pmm3-client && percona-release enable pt
+- name: Enable PS84, toolkit and PMM3 Repos
+  shell: >
+    percona-release setup ps-84-lts
+    percona-release enable pxb-84-lts && percona-release enable pmm3-client && percona-release enable pt
 
-  - name: Install percona toolkit
-    dnf:
-      state: latest
-      name:
-        - percona-toolkit
-
+- name: Install percona toolkit
+  dnf:
+    state: latest
+    name:
+      - percona-toolkit
