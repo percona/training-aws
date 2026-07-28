@@ -4,7 +4,7 @@ Learnomancer is a PHP CLI for provisioning and tearing down Percona training env
 
 The CLI entry point is `./bin/learnomancer`, built on [CakePHP Console](https://book.cakephp.org/5/en/console-commands.html).
 
-```
+```bash
 $ ./bin/learnomancer
 Available Commands:
   ansible-config     Generate an Ansible configuration file for a given class
@@ -25,7 +25,7 @@ Available Commands:
 
 ---
 
-# Quick Start
+## Quick Start
 
 1. Install requirements, and clone or update local repo
 2. Login to AWS via SSO, if Key/Secret not previously configured
@@ -33,7 +33,7 @@ Available Commands:
 4. Execute `ansible-playbook` against the class inventory
 5. Get class dashboard URL. See 'summary' subcommand below.
 
-# Requirements and Installation
+## Requirements and Installation
 
 ### Requirements
 
@@ -45,10 +45,10 @@ Available Commands:
 ### Install with Homebrew
 
 ```bash
-$ brew install php@8.5 composer ansible
-$ git clone https://github.com/percona/training-aws
-$ cd training-aws
-$ composer install
+brew install php@8.5 composer ansible
+git clone https://github.com/percona/training-aws
+cd training-aws
+composer install
 ```
 
 Ensure `php` is in your `PATH`:
@@ -66,19 +66,19 @@ Zend Engine v4.5.3, Copyright (c) Zend Technologies
 
 Configure `~/.aws/credentials` (or equivalent via environment / SSO):
 
-```
+```bash
 [default]
 aws_access_key_id = ...
 aws_secret_access_key = ...
 ```
 
-You can also use `aws sso login` 
+You can also use `aws sso login`
 
 ### Verify the CLI
 
 ```bash
-$ bin/learnomancer
-$ bin/learnomancer list-amis --help
+./bin/learnomancer
+./bin/learnomancer list-amis --help
 ```
 
 ### Slug and Region conventions
@@ -93,17 +93,15 @@ Use a short client **slug** (e.g. `ACME`, `TREK`) as the class suffix. Resources
 
 List Percona Training AMIs in a region.
 
-**Syntax**
+#### Syntax
 
-```
+```bash
 ./bin/learnomancer list-amis <region>
 ```
 
-**Help**
+#### Help
 
-```
-List available AMIs for a given region
-
+```bash
 Usage:
 learnomancer list_amis [-h] <region>
 
@@ -116,7 +114,7 @@ Arguments:
 region  The region to list from
 ```
 
-**Example**
+#### Example
 
 ```bash
 $ ./bin/learnomancer list-amis us-west-2
@@ -135,15 +133,15 @@ $ ./bin/learnomancer list-amis us-west-2
 
 List running instances for a class slug in a region.
 
-**Syntax**
+#### Syntax
 
-```
+```bash
 ./bin/learnomancer list-instances <slug> <region>
 ```
 
-**Help**
+#### Help
 
-```
+```bash
 List currently running instances for an existing class
 
 Usage:
@@ -159,7 +157,7 @@ slug    The slug/suffix for the class
 region  The region to list from
 ```
 
-**Example**
+#### Example
 
 ```bash
 $ ./bin/learnomancer list-instances ACME us-west-2
@@ -178,17 +176,15 @@ $ ./bin/learnomancer list-instances ACME us-west-2
 
 List VPCs in a region
 
-**Syntax**
+#### Syntax
 
-```
+```bash
 ./bin/learnomancer list-vpcs <region>
 ```
 
-**Help**
+#### Help
 
-```
-List currently existing VPCs for a given region
-
+```bash
 Usage:
 learnomancer list_vpcs [-h] <region>
 
@@ -201,7 +197,7 @@ Arguments:
 region  The region to list from
 ```
 
-**Example**
+#### Example
 
 ```bash
 $ ./bin/learnomancer list-vpcs us-west-2
@@ -219,17 +215,15 @@ $ ./bin/learnomancer list-vpcs us-west-2
 
 Create a VPC including subnet, gateway, route table, and security groups.
 
-**Syntax**
+#### Syntax
 
-```
+```bash
 ./bin/learnomancer create-vpc <slug> <region>
 ```
 
-**Help**
+#### Help
 
-```
-Create a VPC for a new class
-
+```bash
 Usage:
 learnomancer create_vpc [-h] [-r] <slug> <region>
 
@@ -243,7 +237,7 @@ slug    The slug/suffix for the class
 region  The region to list from
 ```
 
-**Example**
+#### Example
 
 ```bash
 $ ./bin/learnomancer create-vpc ACME us-west-2
@@ -261,17 +255,15 @@ $ ./bin/learnomancer create-vpc ACME us-west-2
 
 Tear down the VPC and related networking for a class.
 
-**Syntax**
+#### Syntax
 
-```
+```bash
 ./bin/learnomancer drop-vpc <slug> <region>
 ```
 
-**Help**
+#### Help
 
-```
-Drop the VPC for an existing class
-
+```bash
 Usage:
 learnomancer drop_vpc [-h] <slug> <region>
 
@@ -285,7 +277,7 @@ slug    The slug/suffix for the class
 region  The region to list from
 ```
 
-**Example**
+#### Example
 
 ```bash
 $ ./bin/learnomancer drop-vpc ACME us-west-2
@@ -302,20 +294,12 @@ $ ./bin/learnomancer drop-vpc ACME us-west-2
 
 Launch (or add) EC2 instances into an existing class.
 
-**Syntax**
-
-```
-./bin/learnomancer create-instances [-i <ami>] [-o <offset>] <slug> <region> <count> <machinetype[,machinetype...]>
-```
-
-**Help**
-
-```
 Use this command to create/launch new instances for a class.
 There are several machine types to select from. You can select a single
 type, or combine several types separated by comma.
 
 Types:
+
 - db1: A regular PS 8.4 MySQL server with sample data
 - db2: A blank instance. Typically used as a replica of db1.
 - app: An instance with sysbench, and helper scripts for generating load
@@ -324,9 +308,19 @@ configuration. Used in the PXC, and GR classes
 - mongodb: Regular PS MongoDb server
 
 Aliases:
+
 - pxc: This is a combination alias for 4 types: "app,mysql1,mysql2,mysql3"
 - gr: Also a combination alias for 4 types: "app,mysql1,mysql2,mysql3"
 
+#### Syntax
+
+```bash
+./bin/learnomancer create-instances [-i <ami>] [-o <offset>] <slug> <region> <count> <machinetype[,machinetype...]>
+```
+
+#### Help
+
+```bash
 Usage:
 learnomancer create_instances [-i ami-xxxxxx] [-h] [-o 0] <slug> <region> <count> <db1|db2|app|mysql1|mysql2|mysql3|pxc|gr|node1|node2|node3|node4|mongodb>
 
@@ -349,7 +343,7 @@ machinetype  The machine type to create, related to the class
 
 ```
 
-**Example**
+#### Example
 
 ```bash
 # First pick the most recent date-based AMI
@@ -368,17 +362,15 @@ $ ./bin/learnomancer create-instances -o 9 ACME us-west-2 2 db1,db2 -i ami-0abc1
 
 Terminate all instances for a class slug (does not drop the VPC).
 
-**Syntax**
+#### Syntax
 
-```
+```bash
 ./bin/learnomancer drop-instances <slug> <region>
 ```
 
-**Help**
+#### Help
 
-```
-Drop all instances from an existing class
-
+```bash
 Usage:
 learnomancer drop_instances [-h] <slug> <region>
 
@@ -392,7 +384,7 @@ slug    The slug/suffix for the class
 region  The region to list from
 ```
 
-**Example**
+#### Example
 
 ```bash
 $ ./bin/learnomancer drop-instances ACME us-west-2
@@ -415,15 +407,15 @@ Available Classes, which should match slide material:
 - MongoDB:    mongo-ops, mongo-dev, mongo-k8s
 - PostgreSQL: pg-ops, pg-dev, pg-k8s
 
-**Syntax**
+#### Syntax
 
-```
+```bash
 ./bin/learnomancer create-class <class> <slug> <region> <count> <ami>
 ```
 
-**Help**
+#### Help
 
-```
+```bash
 Usage:
 learnomancer create_class [-h] <mysql-ops|pxc|gr|proxysql|mysql-k8s|mongo-ops|mongo-dev|mongo-k8s|pg-ops|pg-dev|pg-k8s> <slug> <region> <count> <ami>
 
@@ -443,7 +435,7 @@ ami     The AMI to use. Use list-amis to get a list default:
 
 ```
 
-**Example**
+#### Example
 
 ```bash
 # List AMIs for region
@@ -460,20 +452,17 @@ $ ./bin/learnomancer create-class mysql-ops ACME us-west-1 9 ami-0abc123def45678
 
 ### `drop-class`
 
-Drop all instances, and VPC for a class.
+Use this command to drop an existing class based on slug and region.
 
-**Syntax**
+#### Syntax
 
-```
+```bash
 ./bin/learnomancer drop-class <slug> <region>
 ```
 
-**Help**
+#### Help
 
-```
-Use this command to drop an existing class based on slug and region.
-
-
+```bash
 Usage:
 learnomancer drop_class [-h] <slug> <region>
 
@@ -488,10 +477,10 @@ region  The region to create into
 
 ```
 
-**Example**
+#### Example
 
 ```bash
-$ ./bin/learnomancer drop-class ACME us-west-2
+./bin/learnomancer drop-class ACME us-west-2
 ```
 
 ---
@@ -500,17 +489,15 @@ $ ./bin/learnomancer drop-class ACME us-west-2
 
 Generate Ansible inventory for a class. Print to stdout, or save with `-o`.
 
-**Syntax**
+#### Syntax
 
-```
+```bash
 ./bin/learnomancer ansible-config [-o] <slug> <region>
 ```
 
-**Help**
+#### Help
 
-```
-Generate an Ansible configuration file for a given class
-
+```bash
 Usage:
 learnomancer ansible_config [-h] [-o] <slug> <region>
 
@@ -525,7 +512,7 @@ slug    The slug/suffix for the class
 region  The region to list from
 ```
 
-**Example**
+#### Example
 
 ```bash
 $ ./bin/learnomancer ansible-config -o ACME us-west-2
@@ -541,15 +528,15 @@ $ ansible-playbook -i ansible_acme hosts.yml
 
 Generate SSH `Host` entries file for class instances. Print to stdout, or save with `-o`. This file is typically only for the instructor in order to more quickly connect to a student's instance.
 
-**Syntax**
+#### Syntax
 
-```
+```bash
 ./bin/learnomancer ssh-config [-o] <slug> <region>
 ```
 
-**Help**
+#### Help
 
-```
+```bash
 Usage:
 learnomancer ssh_config [-h] [-o] <slug> <region>
 
@@ -564,7 +551,7 @@ slug    The slug/suffix for the class
 region  The region to list from
 ```
 
-**Example**
+#### Example
 
 ```bash
 $ ./bin/learnomancer ssh-config ACME us-west-2
@@ -589,18 +576,15 @@ $ ssh -F ssh_ACME db2-T3
 
 Print the student dashboard URL, and connection reminders for a class. Share the dashboard URL with the students, and assign the team numbers at the beginning of one of the class sections.
 
-**Syntax**
+#### Syntax
 
-```
+```bash
 ./bin/learnomancer summary <class-slug>
 ```
 
-**Help**
+#### Help
 
-```
-Output summary of a given class, including the class dashboard, and SSH
-info
-
+```bash
 Usage:
 learnomancer summary [-h] <slug>
 
@@ -613,7 +597,7 @@ Arguments:
 slug  The slug/suffix for the class
 ```
 
-**Example**
+#### Example
 
 ```bash
 $ ./bin/learnomancer summary ACME
@@ -634,17 +618,15 @@ Note: If the dashboard does not load immediately, please wait a minute for Dynam
 
 Push instance IP / team metadata to the DynamoDB table, used by the dashboard. (rarely needed, as this sync is normally done during instance creation)
 
-**Syntax**
+#### Syntax
 
-```
+```bash
 ./bin/learnomancer sync-dynamo <slug> <region>
 ```
 
-**Help**
+#### Help
 
-```
-Sync instance information to DynamoDB (rarely needed)
-
+```bash
 Usage:
 learnomancer sync_dynamo [-h] <slug> <region>
 
@@ -658,7 +640,7 @@ slug    The slug/suffix for the class
 region  The region to list from
 ```
 
-**Example**
+#### Example
 
 ```bash
 $ ./bin/learnomancer sync-dynamo ACME us-west-2
@@ -674,17 +656,15 @@ $ ./bin/learnomancer sync-dynamo ACME us-west-2
 
 Rebuild the local class config file from an existing VPC (rarely needed).
 
-**Syntax**
+#### Syntax
 
-```
+```bash
 ./bin/learnomancer vpc-config <slug> <region>
 ```
 
-**Help**
+#### Help
 
-```
-Rebuild the local Learnomancer config for a given class (rarely needed)
-
+```bash
 Usage:
 learnomancer vpc_config [-h] <slug> <region>
 
@@ -698,7 +678,7 @@ slug    The slug/suffix for the class
 region  The region to rebuild the config for
 ```
 
-**Example**
+#### Example
 
 ```bash
 $ ./bin/learnomancer vpc-config ACME us-west-2
@@ -707,10 +687,9 @@ Config rebuilt for 'ACME' in 'us-west-2' with VPC 'Percona-Training-ACME-VPC' (v
 
 ---
 
-# Developing / Contributing
+## Developing / Contributing
 
 ### Project layout
-
 
 | Path                         | Purpose                                           |
 | ---------------------------- | ------------------------------------------------- |
@@ -725,9 +704,6 @@ Config rebuilt for 'ACME' in 'us-west-2' with VPC 'Percona-Training-ACME-VPC' (v
 | `hosts.yml`, `roles/`        | Ansible provisioning                              |
 | `packer/`                    | AMI build templates                               |
 
-
-
-
 ### CakePHP Console
 
 This project is a **CakePHP Console application**, not a full CakePHP web app. The sub-commands extend `Cake\Console\BaseCommand`, define arguments/options in `buildOptionParser()`, and implement `execute()`. New sub-commands should:
@@ -741,7 +717,7 @@ This project is a **CakePHP Console application**, not a full CakePHP web app. T
 Static analysis runs at **level 10** on `src/` (see `phpstan.neon`). Helpers under `src/Command/Helper/` are excluded, as they are 3rd party.
 
 ```bash
-$ composer stan
+composer stan
 ```
 
 Prefer fixing real types (narrow nullable CLI args, accurate `@return` array shapes) over ignores or casts.
@@ -751,19 +727,15 @@ Prefer fixing real types (narrow nullable CLI args, accurate `@return` array sha
 Code style is enforced with PHP_CodeSniffer using PSR-12 / CakePHP ruleset customizations (`phpcs.xml`).
 
 ```bash
-$ composer cs-check   # report violations
-$ composer cs-fix     # auto-fix where possible
+composer cs-check   # report violations
+composer cs-fix     # auto-fix where possible
 ```
-
-
 
 ### Other Composer scripts
 
 ```bash
 composer lint       # PHP parallel-lint (syntax)
 ```
-
-
 
 ### Pull Requests
 
