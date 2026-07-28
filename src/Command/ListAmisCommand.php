@@ -43,7 +43,7 @@ class ListAmisCommand extends BaseCommand
 	public function execute(Arguments $args, ConsoleIo $io): ?int
 	{
 		// Get arguments
-		$region = $args->getArgument('region');
+		$region = $args->getArgument('region') ?: $io->abort('Missing region parameter');
 
 		/** @var \Learnomancer\Command\Helper\TableHelper $tableHelper */
 		$tableHelper = $io->helper('Learnomancer\Command\Helper\TableHelper');

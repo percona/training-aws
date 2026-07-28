@@ -57,8 +57,8 @@ class DropClassCommand extends BaseCommand
 	public function execute(Arguments $args, ConsoleIo $io): ?int
 	{
 		// Get arguments
-		$slug   = $args->getArgument('slug');
-		$region = $args->getArgument('region');
+		$slug   = $args->getArgument('slug') ?: $io->abort('Missing slug parameter');
+		$region = $args->getArgument('region') ?: $io->abort('Missing region parameter');
 
 		// Call the create-instances command
 		$res = $this->executeCommand(DropInstancesCommand::class, [$slug, $region], $io);

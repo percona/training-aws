@@ -547,17 +547,16 @@ final class AwsClient
 		return $vpcId;
 	}
 
-
 	/**
 	 * List VPCs
 	 *
-	 * @return array<array{VpcId: string, Name: string}>
+	 * @return array<array{VpcId: string, Name: string, Tags?: array<array{Key: string, Value: string}>}>
 	 */
 	public function listVpcs(): array
 	{
 		$res = $this->client->describeVpcs();
 
-		/** @var array<array{VpcId: string, Name: string}> $vpcs */
+		/** @var array<array{VpcId: string, Name: string, Tags: array<array{Key: string, Value: string}>}> $vpcs */
 		$vpcs = $res->get('Vpcs');
 
 		return $vpcs;
@@ -760,19 +759,6 @@ final class AwsClient
 				],
 			],
 		]);
-	}
-
-	/**
-	 * Return list of all AWS regions
-	 */
-	public function listRegions(): array
-	{
-		$res = $this->client->describeRegions();
-
-		/** @var array<array{RegionName: string}> $regions */
-		$regions = $res->get('Regions');
-
-		return $regions;
 	}
 
 	/**

@@ -53,8 +53,8 @@ class AnsibleConfigCommand extends BaseCommand
 	public function execute(Arguments $args, ConsoleIo $io): ?int
 	{
 		// Get arguments
-		$slug   = $args->getArgument('slug');
-		$region = $args->getArgument('region');
+		$slug   = $args->getArgument('slug') ?: $io->abort('Missing slug parameter');
+		$region = $args->getArgument('region') ?: $io->abort('Missing region parameter');
 
 		try
 		{

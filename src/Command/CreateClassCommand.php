@@ -82,16 +82,15 @@ class CreateClassCommand extends BaseCommand
 	public function execute(Arguments $args, ConsoleIo $io): ?int
 	{
 		// Get arguments
-		$slug   = $args->getArgument('slug');
-		$region = $args->getArgument('region');
-		$class  = $args->getArgument('class');
-		$count  = $args->getArgument('count');
+		$slug   = $args->getArgument('slug') ?: $io->abort('Missing slug parameter');
+		$region = $args->getArgument('region') ?: $io->abort('Missing region parameter');
+		$class  = $args->getArgument('class') ?: $io->abort('Missing class parameter');
 
 		// @var int $count
-		$count = intval($count);
+		$count = intval($args->getArgument('count')) ?: $io->error('Count must be an integer');
 
 		// @var string $ami
-		$ami = (string)$args->getArgument('ami');
+		$ami = (string)$args->getArgument('ami') ?: $io->error('AMI is required');
 
 		// Class->machine mapping
 		$machineTypes = match ($class)

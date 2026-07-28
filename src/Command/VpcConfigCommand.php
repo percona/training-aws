@@ -47,8 +47,8 @@ class VpcConfigCommand extends BaseCommand
 	public function execute(Arguments $args, ConsoleIo $io): ?int
 	{
 		// Get arguments
-        $slug   = $args->getArgument('slug');
-		$region = $args->getArgument('region');
+        $slug   = $args->getArgument('slug') ?: $io->abort('Missing slug parameter');
+		$region = $args->getArgument('region') ?: $io->abort('Missing region parameter');
 
         try
 		{
@@ -60,6 +60,11 @@ class VpcConfigCommand extends BaseCommand
 
             $ec2 = new Learnomancer\AwsClient($region);
             $vpc = $ec2->getVpcByName($vpcName);
+            if (empty($vpc)) {
+                $io->error("!! VPC '{$vpcName}' not found in '{$region}' !!");
+
+                return static::CODE_ERROR;
+            }
 
             $config = new Learnomancer\LearnomancerConfig($slug, $region);
             $config->load(missingOk: true);
