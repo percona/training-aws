@@ -30,10 +30,10 @@ class VpcConfigCommand extends BaseCommand
 				'required' => true,
 				'help' => 'The slug/suffix for the class',
 			],
-            'region' => [
-                'required' => true,
-                'help' => 'The region to rebuild the config for',
-            ],
+			'region' => [
+				'required' => true,
+				'help' => 'The region to rebuild the config for',
+			],
 		]);
 
 		$parser->removeOption('verbose')->removeOption('quiet');
@@ -47,36 +47,36 @@ class VpcConfigCommand extends BaseCommand
 	public function execute(Arguments $args, ConsoleIo $io): ?int
 	{
 		// Get arguments
-        $slug   = $args->getArgument('slug') ?: $io->abort('Missing slug parameter');
+		$slug	= $args->getArgument('slug') ?: $io->abort('Missing slug parameter');
 		$region = $args->getArgument('region') ?: $io->abort('Missing region parameter');
 
-        try
+		try
 		{
-            $baseName = "Percona-Training-{$slug}";
-            $vpcName = "{$baseName}-VPC";
-            $routeTableName = "{$baseName}-RT";
-            $subnetName = "{$baseName}-SN";
-            $gatewayName = "{$baseName}-GW";
+			$baseName       = "Percona-Training-{$slug}";
+			$vpcName        = "{$baseName}-VPC";
+			$routeTableName = "{$baseName}-RT";
+			$subnetName     = "{$baseName}-SN";
+			$gatewayName    = "{$baseName}-GW";
 
-            $ec2 = new Learnomancer\AwsClient($region);
-            $vpc = $ec2->getVpcByName($vpcName);
-            if (empty($vpc)) {
-                $io->error("!! VPC '{$vpcName}' not found in '{$region}' !!");
+			$ec2 = new Learnomancer\AwsClient($region);
+			$vpc = $ec2->getVpcByName($vpcName);
+			if (empty($vpc)) {
+				$io->error("!! VPC '{$vpcName}' not found in '{$region}' !!");
 
-                return static::CODE_ERROR;
-            }
+				return static::CODE_ERROR;
+			}
 
-            $config = new Learnomancer\LearnomancerConfig($slug, $region);
-            $config->load(missingOk: true);
+			$config = new Learnomancer\LearnomancerConfig($slug, $region);
+			$config->load(missingOk: true);
 
-            $config->vpcId = $vpc['VpcId'];
-            $config->routeTableId = $ec2->getRouteTableByName($routeTableName)['RouteTableId'];
-            $config->subnetId = $ec2->getSubnetByName($subnetName)['SubnetId'];
-            $config->gatewayId = $ec2->getGatewayByName($gatewayName)['GatewayId'];
+			$config->vpcId        = $vpc['VpcId'];
+			$config->routeTableId = $ec2->getRouteTableByName($routeTableName)['RouteTableId'];
+			$config->subnetId     = $ec2->getSubnetByName($subnetName)['SubnetId'];
+			$config->gatewayId    = $ec2->getGatewayByName($gatewayName)['GatewayId'];
 
-            $config->save();
+			$config->save();
 
-            $io->out("Config rebuilt for '{$slug}' in '{$region}' with VPC '{$vpcName}' ({$vpc['VpcId']})");
+			$io->out("Config rebuilt for '{$slug}' in '{$region}' with VPC '{$vpcName}' ({$vpc['VpcId']})");
 		}
 		catch (Learnomancer\LearnomancerException | Exception $e)
 		{

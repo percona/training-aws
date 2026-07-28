@@ -45,36 +45,36 @@ class ListVpcsCommand extends BaseCommand
 		// Get arguments
 		$region = $args->getArgument('region') ?: $io->abort('Missing region parameter');
 
-        /** @var \Learnomancer\Command\Helper\TableHelper $tableHelper */
+		/** @var \Learnomancer\Command\Helper\TableHelper $tableHelper */
 		$tableHelper = $io->helper('Learnomancer\Command\Helper\TableHelper');
 
-        try
+		try
 		{
 			$ec2  = new Learnomancer\AwsClient($region);
 			$vpcs = $ec2->listVpcs();
 
-            $tableData = [['VpcId', 'Name']];
+			$tableData = [['VpcId', 'Name']];
 
-            $io->out("========== Listing VPCs in '{$region}' ==========");
+			$io->out("========== Listing VPCs in '{$region}' ==========");
 
-            foreach ($vpcs as $vpc)
+			foreach ($vpcs as $vpc)
 			{
-                $name = '(No tags on VPC)';
-                if(isset($vpc['Tags']))
-                {
-                    foreach($vpc['Tags'] as $tag)
-                    {
-                        if ($tag['Key'] == 'Name')
-                        {
-                            $name = $tag['Value'];
-                        }
-                    }
-                }
+				$name = '(No tags on VPC)';
+				if(isset($vpc['Tags']))
+				{
+					foreach($vpc['Tags'] as $tag)
+					{
+						if ($tag['Key'] == 'Name')
+						{
+							$name = $tag['Value'];
+						}
+					}
+				}
 
-                $tableData[] = [$vpc['VpcId'], $name];
+				$tableData[] = [$vpc['VpcId'], $name];
 			}
 
-            $tableHelper->output($tableData);
+			$tableHelper->output($tableData);
 		}
 		catch (Learnomancer\LearnomancerException | Exception $e)
 		{

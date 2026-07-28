@@ -96,14 +96,14 @@ class CreateClassCommand extends BaseCommand
 		$machineTypes = match ($class)
 		{
 			'mysql-ops' => 'db1,db2',
-			'proxysql'  => 'db1,db2',
+			'proxysql' => 'db1,db2',
 			'mysql-k8s' => 'node1',
 			'pxc', 'gr' => 'app,mysql1,mysql2,mysql3',
 			'mongo-ops' => 'mongodb',
 			'mongo-dev' => 'mongodb',
-			'pg-ops'    => 'pg1',
-			'pg-dev'    => 'pg1',
-			default     => $io->abort('!! Invalid option for class !!'),
+			'pg-ops' => 'pg1',
+			'pg-dev' => 'pg1',
+			default => $io->abort('!! Invalid option for class !!'),
 		};
 
 		// Create the VPC

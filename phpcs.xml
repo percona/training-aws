@@ -43,9 +43,6 @@
 	<rule ref="CakePHP">
 		<exclude name="CakePHP.Commenting.FunctionComment.TagAlignment" />
 
-		<!-- https://github.com/cakephp/cakephp-codesniffer/issues/423 //-->
-		<exclude name="CakePHP.WhiteSpace.TabAndSpace.DoubleSpace" />
-
 		<!-- Allaman Style //-->
 		<exclude name="Squiz.ControlStructures.ControlSignature.SpaceAfterCloseBrace" />
 		<exclude name="Squiz.ControlStructures.ControlSignature.SpaceAfterCloseParenthesis" />
@@ -54,9 +51,15 @@
 	</rule>
 
 	<rule ref="Generic.Formatting.SpaceAfterNot">
-	  <properties>
-		  <property name="spacing" value="0" />
-	  </properties>
+		<properties>
+			<property name="spacing" value="0" />
+		</properties>
+	</rule>
+
+	<rule ref="SlevomatCodingStandard.Whitespaces.DuplicateSpaces">
+		<properties>
+			<property name="ignoreSpacesBeforeAssignment" value="true" />
+		</properties>
 	</rule>
 
 </ruleset>

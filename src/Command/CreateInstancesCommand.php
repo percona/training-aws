@@ -151,7 +151,7 @@ class CreateInstancesCommand extends BaseCommand
 		foreach ($machines as $machine)
 		{
 			$instanceType = match ($machine) {
-				'app'   => 't3.xlarge',
+				'app' => 't3.xlarge',
 				'node1' => 't3.2xlarge',
 				default => 't3.large',
 			};
