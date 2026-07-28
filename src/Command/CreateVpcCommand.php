@@ -43,14 +43,6 @@ class CreateVpcCommand extends BaseCommand
 			],
 		]);
 
-		$parser->addOptions([
-			'rebuild' => [
-				'short' => 'r',
-				'help' => 'Rebuild config using VPC name, and region',
-				'boolean' => true,
-			],
-		]);
-
 		$parser->removeOption('verbose')->removeOption('quiet');
 
 		return $parser;
@@ -100,17 +92,16 @@ class CreateVpcCommand extends BaseCommand
 			if (empty($vpcId))
 			{
 				$io->out("- No VPC Id in config file. Searching by name '{$vpcName}'...");
-				$rebuild = $args->getOption('rebuild');
 
 				$vpc = $this->ec2->getVpcByName($vpcName);
-				if (!empty($vpc) && !$rebuild)
+				if (!empty($vpc))
 				{
 					$io->error("!! A VPC with that name already exists: {$vpc['Name']} ({$vpc['VpcId']})");
-					$io->error("!! Please use a different region, different slug, or use '-r' to rebuild the config.");
+					$io->error("!! Please use a different slug, or use 'vpc-config' to rebuild the config.");
 
 					return static::CODE_ERROR;
 				}
-				elseif (empty($vpc))
+				else
 				{
 					// Nothing found via matching name. This is a brand new vpc creation.
 					$io->out("- VPC '{$vpcName}' not found. Creating new VPC...");
@@ -155,7 +146,7 @@ class CreateVpcCommand extends BaseCommand
 			if ($subnet['VpcId'] !== $vpcId)
 			{
 				$io->error("!! Subnet ({$subnetId}) does not belong to VPC ({$vpcId}) !!");
-				$io->error('!! Please execute rebuild-config if you believe this to be in error.');
+				$io->error('!! Please rebuild the VPC config using "vpc-config" if you believe this to be in error.');
 
 				return static::CODE_ERROR;
 			}
@@ -182,7 +173,7 @@ class CreateVpcCommand extends BaseCommand
 			if ($gateway['VpcId'] !== $vpcId)
 			{
 				$io->error("!! Gateway ({$gatewayId}) does not belong to VPC ({$vpcId}) !!");
-				$io->error('!! Please execute rebuild-config if you believe this to be in error.');
+				$io->error('!! Please rebuild the VPC config using "vpc-config" if you believe this to be in error.');
 
 				return static::CODE_ERROR;
 			}
@@ -218,7 +209,7 @@ class CreateVpcCommand extends BaseCommand
 			if ($routeTable['VpcId'] !== $vpcId)
 			{
 				$io->error("!! Route table ({$routeTableId}) does not belong to VPC ({$vpcId}) !!");
-				$io->error('!! Please execute rebuild-config if you believe this to be in error.');
+				$io->error('!! Please rebuild the VPC config using "vpc-config" if you believe this to be in error.');
 
 				return static::CODE_ERROR;
 			}

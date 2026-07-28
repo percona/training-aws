@@ -1,231 +1,775 @@
-# Percona Training AWS Scripts
+# Learnomancer
 
-## AMI List
+Learnomancer is a PHP CLI for provisioning and tearing down Percona training environments in AWS. It creates VPCs, launches EC2 instances for classes, generates Ansible inventory, and SSH config files.
 
-Always use the latest AMI in the region you are delivering from. Leave off `-i`, and the script will show you all available AMIs in this region:
-
-```
-Example:
-
-$ ./start-instances.php -a ADD -r eu-west-1 -p TREK -c 6 -m db1
-You must set the AMI to use for the training instances.
-The following Percona-Training AMIs were found in the 'eu-west-1' region:
-
-Name                           - AMI
-Percona-Training-20200321-AMI  - ami-0e8223fee4b885841
-Percona-Training-20200710-AMI  - ami-0b02004363780dd42
-...
-```
-
-## Installation
-
-### Packages required
-
-You need PHP 8.5+ and `composer` to run the scripts. Ansible is also required.
-
-On Mac, easy with Homebrew:
+The CLI entry point is `./bin/learnomancer`, built on [CakePHP Console](https://book.cakephp.org/5/en/console-commands.html).
 
 ```
-$ brew install php@8.5 ansible awscli composer
+$ ./bin/learnomancer
+Available Commands:
+  ansible-config     Generate an Ansible configuration file for a given class
+  create-class       Create a new class, including the VPC, instances, and Ansible configuration
+  create-instances   Create, or add, new instances to a existing class
+  create-vpc         Create a VPC for a new class
+  drop-class         Drop an existing class, including the VPC, instances, and related resources
+  drop-instances     Drop instances from an existing class
+  drop-vpc           Drop the VPC for an existing class
+  list-amis          List available AMIs for a given region
+  list-instances     List currently running instances for an existing class
+  list-vpcs          List currently existing VPCs for a given region
+  ssh-config         Generate an SSH config file for an existing class
+  summary            Output summary of a given class, including the class dashboard, and SSH info
+  sync-dynamo        Sync instance information to DynamoDB (rarely needed)
+  vpc-config         Rebuild the local Learnomancer config for a given class (rarely needed)
 ```
 
-On Linux the following packages are required:
+---
 
-```
-$ sudo apt-get install php8.5 php-xml php-mbstring ansible awscli composer
-```
+# Quick Start
 
-After you install composer, install all necessary PHP packages:
+1. Install requirements, and clone or update local repo
+2. Login to AWS via SSO, if Key/Secret not previously configured
+3. Create a class. See 'create-class' subcommand below.
+4. Execute `ansible-playbook` against the class inventory
+5. Get class dashboard URL. See 'summary' subcommand below.
 
-```
+# Requirements and Installation
+
+### Requirements
+
+- PHP 8.5+
+- Composer
+- AWS CLI configured with credentials that can manage EC2, VPC, and DynamoDB
+- Ansible (for provisioning hosts after inventory is generated)
+
+### Install with Homebrew
+
+```bash
+$ brew install php@8.5 composer ansible
+$ git clone https://github.com/percona/training-aws
+$ cd training-aws
 $ composer install
 ```
 
-This will create a `vendor/` directory, with all the 3rd party libraries needed.
+Ensure `php` is in your `PATH`:
 
-### AWS Credentials
+```bash
+$ php -v
+PHP 8.5.3 (cli) (built: Feb 10 2026 18:25:51) (NTS)
+Copyright (c) The PHP Group
+Built by Homebrew
+Zend Engine v4.5.3, Copyright (c) Zend Technologies
+    with Zend OPcache v8.5.3, Copyright (c), by Zend Technologies
+```
 
-Make sure you have your `~/.aws/credentials` configured:
+### AWS credentials
+
+Configure `~/.aws/credentials` (or equivalent via environment / SSO):
 
 ```
-$ cat ~/.aws/credentials 
 [default]
 aws_access_key_id = ...
 aws_secret_access_key = ...
 ```
 
-## Set Up Notes
+You can also use `aws sso login` 
 
-NOTE: `TREK` is used below as an example. Use a "short code" that represents your client during training. Examples: `DELL` if you were training Dell Co.
+### Verify the CLI
 
-### Machine Types
-
-There are multiple "machine types" which are used in different training courses:
-  * `db1`: Used for the 'Scaling and Optimization' course. Exercises in the various chapters can be executed on db1. The 'MyMovies' chapter is a team-building exercise. You would assign 2-3 students for each db1 instance. This instance is also used for 'Operations and Troubleshooting' when doing xtrabackup labs, and functions as the master all master/slave exercises.
-  * `db2`: This machine type is used as the slave instance for all all master/slave exercises.
-  * `scoreboard`: This is for the MyMovies competition. Ansible will handle 100% of the configuration. You simply need to open the page in your browser (port 8080) and display on projector/monitor for students to see.
-  * `app`: This instance serves as sysbench, docker, and proxysql for the XtraDB Cluster and Group Replication tutorials. Each student should get 1 app instance.
-  * `mysql1`, `mysql2`, `mysql3`: These instances are used in the XtraDB Cluster and Group Replication tutorials. Each student should get 1 of each of these.
-  * `node1`: This instance is used in the K8S Operator tutorials. Each student should receive 1 of these.
-  * `mongodb`: This instance has the Percona Server for MongoDB packages. Each student should receive 1 of these for the MongoDB training.
-
-There are 2 machine type aliases, `gr` and `pxc`, both are aliases which will deploy each of the 4 types: `app`, `mysql1`, `mysql2`, and `mysql3`
-
-## Set Up Instances
-
-### 1. Ensure DynamoDB table exists
-
-**NOTE**: You should not need to do this step every time. You can assume this table exists unless the scrips output errors.
-
-Make sure there is a DynamoDB table created on the `us-east-1` region called `percona_training_servers`. This is used to support the training backed but sometimes is deleted. If it is not there, create it with the following structure:
-
-* `Partition Key`: `teamTag` (String)
-* `Sort Key`: `teamID` (Number)
-
-### 2. Create a new VPC
-
-All instances need to run inside a VPC. The VPC will launch with a single subnet of 10.11.0.0/16 with outbound internet capabilities.
-
-```
-./setup-vpc.php -a ADD -r eu-west-1 -p TREK
+```bash
+$ bin/learnomancer
+$ bin/learnomancer list-amis --help
 ```
 
-This will create a VPC in the `eu-west-1` region named `Percona-Training-TREK`. It will create all necessary security group rules for allowing SSH (22), HTTP (80), HTTP-SSL (443), and HTTP-ALT (8080).
+### Slug and Region conventions
 
-### 3. Add/Start EC2 Instances
+Use a short client **slug** (e.g. `ACME`, `TREK`) as the class suffix. Resources are named like `Percona-Training-{slug}`. Pick an AWS **region** close to the students (e.g. `us-west-2`, `eu-west-1`).
 
-Using the same suffix (TREK in this case) we can launch instances inside the above VPC:
+---
 
-```
-./start-instances.php -a ADD -r eu-west-1 -p TREK -c 6 -m db1 -i ami-9f10fbec
-```
+## Sub-commands
 
-The above example will launch 6 instances of the db1 image in the VPC. They will be named `Percona-Training-TREK-db1-T[1-6]`.
+### `list-amis`
 
-If you need to launch other instance types, simply repeat the above command and change the `-m` parameter.
+List Percona Training AMIs in a region.
 
-### 3a. Launch multiple instance types
-
-You can launch multiple instance types at the same time. Separate each type with `,` or use the two aliases.
+**Syntax**
 
 ```
--- Launch 4 complete setups for use in the PXC tutorial. A total of 16 EC2 instances will be created (4 teams, each with 4 servers).
-./start-instances.php -a ADD -r eu-west-1 -p TREK -c 4 -m pxc -i ami-014230ad6c3e10ec2
-
--- Launch 7 setups for Operations class, db1 and db2. This will launch 14 instances total (7 teams, each with 2 servers).
-./start-instances.php -a ADD -r us-west-2 -p TREK -c 7 -m db1,db2 -i ami-014230ad6c3e10ec2
+./bin/learnomancer list-amis <region>
 ```
 
-### 3b. Add More Instances
-
-If you need to add more instances (i.e.: more teams, or more students) you can do so using the `-o` (offset) to make sure the numbers match up. `-c ` is the number of instances to add.
+**Help**
 
 ```
-./start-instances.php -a ADD -r eu-west-1 -p TREK -c 1 -o 6 -m db1 -i ami-9f10fbec
+List available AMIs for a given region
+
+Usage:
+learnomancer list_amis [-h] <region>
+
+Options:
+
+--help, -h  Display this help.
+
+Arguments:
+
+region  The region to list from
 ```
 
-In this example, the offset `-o` is 6. The next numbered instance will start at 7. The above command will launch 1 `-c 1` more instance named `Percona-Training-TREK-db1-T7`
+**Example**
 
-### 4. Generate `ansible_hosts` and configure hosts
-
-Once all machines are up and running, we can generate an `ansible_hosts` file, which we can use to provision the servers.
-
-```
-./start-instances.php -a GETANSIBLEHOSTS -r eu-west-1 -p TREK > ansible_hosts_trek
-```
-
-There is only 1 ansible playbook: `hosts.yml`. This playbook contains tasks for all of the different machine types by adding/removing yum repos, configuring the */etc/hosts* file, installing necessary software packages, checking out git repos, and much more.
-
-You can re-run this playbook as needed. That's the nice thing about ansible; it only changes what needs to be changed to set a specific state.
-
-Ideally, though, you would create all of your machine types then run this playbook only once.
-
-```
-# ansible-playbook -i ansible_hosts_trek hosts.yml
+```bash
+$ ./bin/learnomancer list-amis us-west-2
+========== Listing AMIs in 'us-west-2' ==========
++--------------------------------+-----------------------+
+| Name                           | AMI Id                |
++--------------------------------+-----------------------+
+| Percona-Training-20260301-AMI  | ami-0abc123def4567890 |
+| Percona-Training-20260115-AMI  | ami-0fedcba9876543210 |
++--------------------------------+-----------------------+
 ```
 
-If you add additional servers and need to provision them, you need to repeat the `GETANSIBLEHOSTS` command, and also repeat the `ansible-playbook` command. But you can specify a single server to make ansible go faster:
+---
+
+### `list-instances`
+
+List running instances for a class slug in a region.
+
+**Syntax**
 
 ```
-# ansible-playbook -i ansible_hosts_trek hosts.yml --limit mysql1-T7    // Provision the mysql1-T7 server only
-
-# ansible-playbook -i ansible_hosts_trek hosts.yml --limit T7    // Provision all servers from Team 7
+./bin/learnomancer list-instances <slug> <region>
 ```
 
-### 5. Teams and Connecting to Instances
-
-Load the following URL to your presentation screen, and/or share the URL within chat, substituting XXXX for your "prefix":
-
-http://percona-training.s3-website-us-east-1.amazonaws.com/?tag=XXXX
-
-This will display all servers created for each team, along with their public and private IP addresses.
-
-Have the students download the keys .zip file from the URL at the bottom of this page. Mac/Linux users must `chmod 600 Percona-Training.key`
-
-Next, assign teams. Just point at each student and say "You are team 1, you are team 2, etc".
-_Exception:_ For the MyMovies competition, assign 2 students per 1 team.
-
-Once the keys and teams are distributed, students can connect to instances.
-
-The SSH username is usually `ec2-user` but depending on the AMI it can be different (e.g. `centos`). There is **NO password**. Windows/Putty users can use the PPK file.
-
-### 6. Removing Instances
-
-After the training is done, you need to remove the instances and the VPC
+**Help**
 
 ```
-./start-instances.php -a DROP -r eu-west-1 -i ami-9f80fbec -p TREK
+List currently running instances for an existing class
+
+Usage:
+learnomancer list_instances [-h] <slug> <region>
+
+Options:
+
+--help, -h  Display this help.
+
+Arguments:
+
+slug    The slug/suffix for the class
+region  The region to list from
 ```
 
-Unfortunately, you need to manually remove the VPC in the AWS web-console interface:
+**Example**
 
-- Go to https://aws.amazon.com
-- Go to the region where you created the instances
-- Click `VPC`
-- Go to `Your VPCs`
-- Select the VPC (in the example named `Percona-Training-TREK`) and click `Delete VPC`. 
+```bash
+$ ./bin/learnomancer list-instances ACME us-west-2
+========== Listing instances for 'ACME' in 'us-west-2' ==========
++---------------------+--------------------------------------+----------------+
+| InstanceId          | Hostname                             | PublicIpAddress|
++---------------------+--------------------------------------+----------------+
+| i-0a1b2c3d4e5f67890 | Percona-Training-ACME-db1-T1         | 54.200.10.1    |
+| i-0f9e8d7c6b5a43210 | Percona-Training-ACME-db2-T1         | 54.200.10.2    |
++---------------------+--------------------------------------+----------------+
+```
 
-This will delete all the VPCs, subnets, gateways...
+---
 
-## Alternate Setup
+### `list-vpcs`
 
-For the *Scaling and Optimization* class, the students might find it more beneficial to have their own instance on which to run the query tuning exercises. This is a bit more work for you, the instructor, but is easially managed thanks to the scripts above. Here is an example timeline for this setup:
+List VPCs in a region
 
-* Day 0: Some time before day 1, you know only 14 students will be attending. Create 15 DB1 instances (one additional for instructor). This will be 14 teams, one student per team. Run ansible as normal.
-* Day 1 (Class): Distribute servers as normal. Assign each student to their own team. Do exercises as normal.
-* Day 1 (Hotel): Destroy all 15 instances. Create 7 DB1 instances for 7 teams, 2 students per team, and 1 scoreboard instance. Run ansible as normal.
-* Day 2 (Class): Re-distribute servers as IPs will change. Assign students, in pairs, to new teams. Run My-Movies exercise.
-* Day 2 (Hotel): Destroy everything. If your class is continuing with *Operations and Troubleshooting*, re-launch 15 DB1 and 15 DB2 instances. Run ansible as normal.
-* Day 3 (Class): Again, re-distribute servers. Run remainder of class/exercises as normal.
+**Syntax**
 
-## Tutorials/Exercises
+```
+./bin/learnomancer list-vpcs <region>
+```
 
-Pages are live-generated. Source is under the `gh-pages` branch of https://github.com/percona/training-material
+**Help**
 
-* Source/Replica Tutorial (Exercises for MySQL Operations & Troubleshooting)
-* ProxySQL Tutorial
-* Mesosphere Tutorial
-* Percona XtraDB Cluster Tutorial
-* Orchestrator Tutorial
-* PostgreSQL Tutorial
-* PMM Tutorial
+```
+List currently existing VPCs for a given region
 
-## MyMovies Exercise
+Usage:
+learnomancer list_vpcs [-h] <region>
 
-* Launch 1 db1 instance for each team, and 1 [scoreboard](https://github.com/percona/training-mymovies/blob/master/scoreboard/README.md) that is shared.
-* Scoreboard will hit 3 different pages on all dbX instances 
-* Teams compete to who can get the app to perform better
-* Check app files under /var/www/html on each instance for the app's PHP code
-* The `mymovies` app runs on port 80 of each `db1` instance (httpd)
-* The `scoreboard` is a Nodejs app listening on port 8080 of the `scoreboard` server
-* [Solutions](https://github.com/percona/training-material/blob/master/slides/modules/my_movies/my_movies_solutions.md)
+Options:
 
-## Survey
+--help, -h  Display this help.
 
-At the end of the training, share a survey with the participants
+Arguments:
 
-1. Create a PDF of your slides. everything in 1 PDF.
-2. Upload PDF to Google Drive
-3. Create share “if have the link” of the PDF
-4. Clone the [survey](https://docs.google.com/forms/d/12GCDBdzwGrOaM-MA3lxJziPUtkL37mDGWVvn41aMlDw/edit), click Settings, Presentation, edit Confirmation message. Paste in URL of PDF.
+region  The region to list from
+```
 
+**Example**
+
+```bash
+$ ./bin/learnomancer list-vpcs us-west-2
+========== Listing VPCs in 'us-west-2' ==========
++------------------------+----------------------------+
+| VpcId                  | Name                       |
++------------------------+----------------------------+
+| vpc-0abc123def4567890  | Percona-Training-ACME-VPC  |
++------------------------+----------------------------+
+```
+
+---
+
+### `create-vpc`
+
+Create a VPC including subnet, gateway, route table, and security groups.
+
+**Syntax**
+
+```
+./bin/learnomancer create-vpc <slug> <region>
+```
+
+**Help**
+
+```
+Create a VPC for a new class
+
+Usage:
+learnomancer create_vpc [-h] [-r] <slug> <region>
+
+Options:
+
+--help, -h     Display this help.
+
+Arguments:
+
+slug    The slug/suffix for the class
+region  The region to list from
+```
+
+**Example**
+
+```bash
+$ ./bin/learnomancer create-vpc ACME us-west-2
+- No VPC Id in config file. Searching by name 'Percona-Training-ACME-VPC'...
+- VPC 'Percona-Training-ACME-VPC' not found. Creating new VPC...
+-- VPC Percona-Training-ACME-VPC (vpc-0abc123def4567890) created in us-west-2
+- Checking VPC (vpc-0abc123def4567890) status...
+-- VPC 'Percona-Training-ACME-VPC' is OK
+...
+```
+
+---
+
+### `drop-vpc`
+
+Tear down the VPC and related networking for a class.
+
+**Syntax**
+
+```
+./bin/learnomancer drop-vpc <slug> <region>
+```
+
+**Help**
+
+```
+Drop the VPC for an existing class
+
+Usage:
+learnomancer drop_vpc [-h] <slug> <region>
+
+Options:
+
+--help, -h  Display this help.
+
+Arguments:
+
+slug    The slug/suffix for the class
+region  The region to list from
+```
+
+**Example**
+
+```bash
+$ ./bin/learnomancer drop-vpc ACME us-west-2
+- Dropping VPC for 'ACME' in 'us-west-2'...
+-- Detaching and deleting internet gateway...
+-- Deleting subnet, route table, security group...
+-- Deleting VPC vpc-0abc123def4567890
+- Done
+```
+
+---
+
+### `create-instances`
+
+Launch (or add) EC2 instances into an existing class.
+
+**Syntax**
+
+```
+./bin/learnomancer create-instances [-i <ami>] [-o <offset>] <slug> <region> <count> <machinetype[,machinetype...]>
+```
+
+**Help**
+
+```
+Use this command to create/launch new instances for a class.
+There are several machine types to select from. You can select a single
+type, or combine several types separated by comma.
+
+Types:
+- db1: A regular PS 8.4 MySQL server with sample data
+- db2: A blank instance. Typically used as a replica of db1.
+- app: An instance with sysbench, and helper scripts for generating load
+- mysql1, mysql2, mysql3: Regular PS 8.4 with sample data in S->R/R
+configuration. Used in the PXC, and GR classes
+- mongodb: Regular PS MongoDb server
+
+Aliases:
+- pxc: This is a combination alias for 4 types: "app,mysql1,mysql2,mysql3"
+- gr: Also a combination alias for 4 types: "app,mysql1,mysql2,mysql3"
+
+Usage:
+learnomancer create_instances [-i ami-xxxxxx] [-h] [-o 0] <slug> <region> <count> <db1|db2|app|mysql1|mysql2|mysql3|pxc|gr|node1|node2|node3|node4|mongodb>
+
+Options:
+
+--ami, -i     The AMI to use. Use list-amis to get available AMIs
+--help, -h    Display this help.
+--offset, -o  Offset the team counter by this amount. Useful when adding
+              more instances to an existing class.
+
+Arguments:
+
+slug         The slug/suffix for the class
+region       The region to create into
+count        The number of teams to create
+machinetype  The machine type to create, related to the class
+             (choices:
+             db1|db2|app|mysql1|mysql2|mysql3|pxc|gr|node1|node2|node3|node4|mongodb)
+             (separator: ",")
+
+```
+
+**Example**
+
+```bash
+# First pick the most recent date-based AMI
+$ ./bin/learnomancer list-amis us-west-2
+
+# Launch 9 teams of db1+db2 for ACME Co, MySQL Operations class
+$ ./bin/learnomancer create-instances ACME us-west-2 9 db1,db2 -i ami-0abc123def4567890
+
+# Later: add 2 more teams (offset past the existing 9)
+$ ./bin/learnomancer create-instances -o 9 ACME us-west-2 2 db1,db2 -i ami-0abc123def4567890
+```
+
+---
+
+### `drop-instances`
+
+Terminate all instances for a class slug (does not drop the VPC).
+
+**Syntax**
+
+```
+./bin/learnomancer drop-instances <slug> <region>
+```
+
+**Help**
+
+```
+Drop all instances from an existing class
+
+Usage:
+learnomancer drop_instances [-h] <slug> <region>
+
+Options:
+
+--help, -h  Display this help.
+
+Arguments:
+
+slug    The slug/suffix for the class
+region  The region to list from
+```
+
+**Example**
+
+```bash
+$ ./bin/learnomancer drop-instances ACME us-west-2
+- Found 18 instances for 'ACME' in 'us-west-2'
+Continue? (y/n)
+y
+- Terminating instances...
+- Done
+```
+
+---
+
+### `create-class`
+
+Primary command: create VPC, and launch instances for a known class type.
+
+Available Classes, which should match slide material:
+
+- MySQL:      mysql-ops, mysql-dev, pxc, gr, proxysql, mysql-k8s
+- MongoDB:    mongo-ops, mongo-dev, mongo-k8s
+- PostgreSQL: pg-ops, pg-dev, pg-k8s
+
+**Syntax**
+
+```
+./bin/learnomancer create-class <class> <slug> <region> <count> <ami>
+```
+
+**Help**
+
+```
+Usage:
+learnomancer create_class [-h] <mysql-ops|pxc|gr|proxysql|mysql-k8s|mongo-ops|mongo-dev|mongo-k8s|pg-ops|pg-dev|pg-k8s> <slug> <region> <count> <ami>
+
+Options:
+
+--help, -h  Display this help.
+
+Arguments:
+
+class   The name of the class. Use -h for full list. (choices:
+        mysql-ops|pxc|gr|proxysql|mysql-k8s|mongo-ops|mongo-dev|mongo-k8s|pg-ops|pg-dev|pg-k8s)
+slug    The slug/suffix for the class
+region  The region to create into
+count   The number of teams to create
+ami     The AMI to use. Use list-amis to get a list default:
+        "ami-xxxxxx"
+
+```
+
+**Example**
+
+```bash
+# List AMIs for region
+$ ./bin/learnomancer list-amis us-west-2
+
+# PostgreSQL Developers class for Skynet Inc, with 4 students:
+$ ./bin/learnomancer create-class pg-dev SKY us-east-2 4 ami-0abc123def4567890
+
+# MySQL Operations class for Acme Corp, with 9 students:
+$ ./bin/learnomancer create-class mysql-ops ACME us-west-1 9 ami-0abc123def4567890
+```
+
+---
+
+### `drop-class`
+
+Drop all instances, and VPC for a class.
+
+**Syntax**
+
+```
+./bin/learnomancer drop-class <slug> <region>
+```
+
+**Help**
+
+```
+Use this command to drop an existing class based on slug and region.
+
+
+Usage:
+learnomancer drop_class [-h] <slug> <region>
+
+Options:
+
+--help, -h  Display this help.
+
+Arguments:
+
+slug    The slug/suffix for the class
+region  The region to create into
+
+```
+
+**Example**
+
+```bash
+$ ./bin/learnomancer drop-class ACME us-west-2
+```
+
+---
+
+### `ansible-config`
+
+Generate Ansible inventory for a class. Print to stdout, or save with `-o`.
+
+**Syntax**
+
+```
+./bin/learnomancer ansible-config [-o] <slug> <region>
+```
+
+**Help**
+
+```
+Generate an Ansible configuration file for a given class
+
+Usage:
+learnomancer ansible_config [-h] [-o] <slug> <region>
+
+Options:
+
+--help, -h    Display this help.
+--output, -o  Save output to file
+
+Arguments:
+
+slug    The slug/suffix for the class
+region  The region to list from
+```
+
+**Example**
+
+```bash
+$ ./bin/learnomancer ansible-config -o ACME us-west-2
+# Writes inventory file for the class to 'ansible_ACME'
+
+# Use the ansible inventory config to prepare instances after creating the class
+$ ansible-playbook -i ansible_acme hosts.yml
+```
+
+---
+
+### `ssh-config`
+
+Generate SSH `Host` entries file for class instances. Print to stdout, or save with `-o`. This file is typically only for the instructor in order to more quickly connect to a student's instance.
+
+**Syntax**
+
+```
+./bin/learnomancer ssh-config [-o] <slug> <region>
+```
+
+**Help**
+
+```
+Usage:
+learnomancer ssh_config [-h] [-o] <slug> <region>
+
+Options:
+
+--help, -h    Display this help.
+--output, -o  Save output to file
+
+Arguments:
+
+slug    The slug/suffix for the class
+region  The region to list from
+```
+
+**Example**
+
+```bash
+$ ./bin/learnomancer ssh-config ACME us-west-2
+Host Percona-Training-ACME-db1-T1 db1-T1
+  HostName 54.200.10.1
+  User rocky
+  IdentityFile Percona-Training.key
+  StrictHostKeyChecking no
+  ForwardAgent yes
+
+$ ./bin/learnomancer ssh-config -o ACME us-west-2
+# Writes ssh_ACME
+
+# Now, you can easily connect to a student's instance for troubleshooting/assistance
+$ ssh -F ssh_ACME db2-T3
+
+```
+
+---
+
+### `summary`
+
+Print the student dashboard URL, and connection reminders for a class. Share the dashboard URL with the students, and assign the team numbers at the beginning of one of the class sections.
+
+**Syntax**
+
+```
+./bin/learnomancer summary <class-slug>
+```
+
+**Help**
+
+```
+Output summary of a given class, including the class dashboard, and SSH
+info
+
+Usage:
+learnomancer summary [-h] <slug>
+
+Options:
+
+--help, -h  Display this help.
+
+Arguments:
+
+slug  The slug/suffix for the class
+```
+
+**Example**
+
+```bash
+$ ./bin/learnomancer summary ACME
+=================================================================
+                 TRAINING ENVIRONMENT READY
+=================================================================
+Server IP Dashboard: http://percona-training.s3-website-us-east-1.amazonaws.com/?tag=ACME
+SSH Username: ec2-user (or 'rocky' depending on the class)
+SSH Key Download: See link at the bottom of the Server IP Dashboard.
+
+Note: If the dashboard does not load immediately, please wait a minute for DynamoDB to sync.
+=================================================================
+```
+
+---
+
+### `sync-dynamo`
+
+Push instance IP / team metadata to the DynamoDB table, used by the dashboard. (rarely needed, as this sync is normally done during instance creation)
+
+**Syntax**
+
+```
+./bin/learnomancer sync-dynamo <slug> <region>
+```
+
+**Help**
+
+```
+Sync instance information to DynamoDB (rarely needed)
+
+Usage:
+learnomancer sync_dynamo [-h] <slug> <region>
+
+Options:
+
+--help, -h  Display this help.
+
+Arguments:
+
+slug    The slug/suffix for the class
+region  The region to list from
+```
+
+**Example**
+
+```bash
+$ ./bin/learnomancer sync-dynamo ACME us-west-2
+- Found 18 instances to sync
+-- Added db1 to team 1
+-- Added db2 to team 1
+...
+```
+
+---
+
+### `vpc-config`
+
+Rebuild the local class config file from an existing VPC (rarely needed).
+
+**Syntax**
+
+```
+./bin/learnomancer vpc-config <slug> <region>
+```
+
+**Help**
+
+```
+Rebuild the local Learnomancer config for a given class (rarely needed)
+
+Usage:
+learnomancer vpc_config [-h] <slug> <region>
+
+Options:
+
+--help, -h  Display this help.
+
+Arguments:
+
+slug    The slug/suffix for the class
+region  The region to rebuild the config for
+```
+
+**Example**
+
+```bash
+$ ./bin/learnomancer vpc-config ACME us-west-2
+Config rebuilt for 'ACME' in 'us-west-2' with VPC 'Percona-Training-ACME-VPC' (vpc-0abc123def4567890)
+```
+
+---
+
+# Developing / Contributing
+
+### Project layout
+
+
+| Path                         | Purpose                                           |
+| ---------------------------- | ------------------------------------------------- |
+| `bin/learnomancer`           | CLI entry point (`CommandRunner` + `Application`) |
+| `src/Application.php`        | Registers console commands                        |
+| `src/AwsClient.php`          | EC2 / VPC AWS SDK wrapper                         |
+| `src/DynamoDbClient.php`     | DynamoDB AWS SDK wrapper                          |
+| `src/LearnomancerConfig.php` | Local `.config-*.cnf` persistence                 |
+| `src/Command/`               | One CakePHP command class per sub-command         |
+| `src/Command/Helper/`        | Console output helpers                            |
+| `config/learnomancer.php`    | Application configuration                         |
+| `hosts.yml`, `roles/`        | Ansible provisioning                              |
+| `packer/`                    | AMI build templates                               |
+
+
+
+
+### CakePHP Console
+
+This project is a **CakePHP Console application**, not a full CakePHP web app. The sub-commands extend `Cake\Console\BaseCommand`, define arguments/options in `buildOptionParser()`, and implement `execute()`. New sub-commands should:
+
+1. Add a dedicated class under `src/Command/`
+2. Register it in `src/Application.php` (`$commands->add('my-command', ...)`)
+3. Keep AWS logic in `AwsClient.php`, or `DynamoDbClient.php` rather than in the command when possible
+
+### PHPStan
+
+Static analysis runs at **level 10** on `src/` (see `phpstan.neon`). Helpers under `src/Command/Helper/` are excluded, as they are 3rd party.
+
+```bash
+$ composer stan
+```
+
+Prefer fixing real types (narrow nullable CLI args, accurate `@return` array shapes) over ignores or casts.
+
+### PHPCS
+
+Code style is enforced with PHP_CodeSniffer using PSR-12 / CakePHP ruleset customizations (`phpcs.xml`).
+
+```bash
+$ composer cs-check   # report violations
+$ composer cs-fix     # auto-fix where possible
+```
+
+
+
+### Other Composer scripts
+
+```bash
+composer lint       # PHP parallel-lint (syntax)
+```
+
+
+
+### Pull Requests
+
+1. Fork and branch from `main`
+2. Implement the change with matching style
+3. Run `composer stan` and `composer cs-check` locally
+4. Open a PR against `main`
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for bug reports, enhancements, and community notes.
