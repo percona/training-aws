@@ -27,7 +27,7 @@ class CreateClassCommand extends BaseCommand
 			'Use this command to create a new class.', '',
 			'Available Classes:',
 			'',
-			'- MySQL:      mysql-ops, mysql-dev, pxc, gr, proxysql, mysql-k8s',
+			'- MySQL:      mysql-ops, pxc, gr, proxysql, mysql-k8s',
 			'- MongoDB:    mongo-ops, mongo-dev, mongo-k8s',
 			'- PostgreSQL: pg-ops, pg-dev, pg-k8s',
 		]);
@@ -96,13 +96,15 @@ class CreateClassCommand extends BaseCommand
 		$machineTypes = match ($class)
 		{
 			'mysql-ops' => 'db1,db2',
+			'pxc', 'gr' => 'app,mysql1,mysql2,mysql3',
 			'proxysql' => 'db1,db2',
 			'mysql-k8s' => 'node1',
-			'pxc', 'gr' => 'app,mysql1,mysql2,mysql3',
 			'mongo-ops' => 'mongodb',
 			'mongo-dev' => 'mongodb',
+			'mongo-k8s' => 'node1',
 			'pg-ops' => 'pg1',
 			'pg-dev' => 'pg1',
+			'pg-k8s' => 'node1',
 			default => $io->abort('!! Invalid option for class !!'),
 		};
 
