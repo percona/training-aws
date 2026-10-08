@@ -360,23 +360,24 @@ $ ./bin/learnomancer create-instances -o 9 ACME us-west-2 2 db1,db2 -i ami-0abc1
 
 ### `drop-instances`
 
-Terminate all instances for a class slug (does not drop the VPC).
+Terminate all instances for a class slug, or select one or more instances by ID (does not drop the VPC).
 
 #### Syntax
 
 ```bash
-./bin/learnomancer drop-instances <slug> <region>
+./bin/learnomancer drop-instances [-i <instance-id>] <slug> <region>
 ```
 
 #### Help
 
 ```bash
 Usage:
-learnomancer drop_instances [-h] <slug> <region>
+learnomancer drop_instances [-h] [-i] <slug> <region>
 
 Options:
 
 --help, -h  Display this help.
+--instance-id, -i  Terminate only these instance IDs. May be repeated or supplied as a comma-separated list.
 
 Arguments:
 
@@ -394,6 +395,23 @@ y
 - Terminating instances...
 - Done
 ```
+
+Terminate specific instances by repeating the option:
+
+```bash
+$ ./bin/learnomancer drop-instances ACME us-west-2 \
+    -i i-0123456789abcdef0 \
+    -i i-0fedcba9876543210
+```
+
+Alternatively, provide a comma-separated list:
+
+```bash
+$ ./bin/learnomancer drop-instances ACME us-west-2 \
+    -i i-0123456789abcdef0,i-0fedcba9876543210
+```
+
+Learnomancer verifies that every requested instance belongs to the specified class before terminating any of them.
 
 ---
 

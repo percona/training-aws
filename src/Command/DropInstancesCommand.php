@@ -37,6 +37,13 @@ class DropInstancesCommand extends BaseCommand
 			],
 		]);
 
+		$parser->addOption('instance-id', [
+			'short' => 'i',
+			'help' => 'Terminate only these instance IDs. May be repeated or supplied as a comma-separated list.',
+			'multiple' => true,
+			'separator' => ',',
+		]);
+
 		$parser->removeOption('verbose')->removeOption('quiet');
 
 		return $parser;
@@ -48,8 +55,12 @@ class DropInstancesCommand extends BaseCommand
 	public function execute(Arguments $args, ConsoleIo $io): ?int
 	{
 		// Get arguments
-		$slug   = $args->getArgument('slug') ?: $io->abort('Missing slug parameter');
-		$region = $args->getArgument('region') ?: $io->abort('Missing region parameter');
+		$slug                 = $args->getArgument('slug') ?: $io->abort('Missing slug parameter');
+		$region               = $args->getArgument('region') ?: $io->abort('Missing region parameter');
+		$requestedInstanceIds = array_values(array_unique(array_map(
+			'trim',
+			$args->getArrayOption('instance-id') ?? [],
+		)));
 
 		/** @var \Learnomancer\Command\Helper\TableHelper $tableHelper */
 		$tableHelper = $io->helper('Learnomancer\Command\Helper\TableHelper');
@@ -62,16 +73,51 @@ class DropInstancesCommand extends BaseCommand
 			$ec2          = new Learnomancer\AwsClient($region);
 			$reservations = $ec2->getInstancesBySlug($slug);
 
-			$instanceIds   = [];
-			$instanceNames = [];
-			$tableData     = [['InstanceID', 'Hostname']];
-			$frontLength   = strlen('Percona-Training-');
+			$instanceIds    = [];
+			$instanceNames  = [];
+			$instanceTypes  = [];
+			$tableData      = [['InstanceID', 'Hostname']];
+			$hostnamePrefix = "Percona-Training-{$slug}-";
 
 			if (empty($reservations))
 			{
+				if ($requestedInstanceIds !== [])
+				{
+					$io->error(sprintf(
+						"These instance IDs were not found for '%s' in '%s': %s",
+						$slug,
+						$region,
+						implode(', ', $requestedInstanceIds),
+					));
+
+					return static::CODE_ERROR;
+				}
+
 				$io->warning("! No instances found for '{$slug}' in '{$region}'");
 
 				return static::CODE_SUCCESS;
+			}
+
+			if ($requestedInstanceIds !== [])
+			{
+				$reservations = array_values(array_filter(
+					$reservations,
+					fn(array $instance): bool => in_array($instance['InstanceId'], $requestedInstanceIds, true),
+				));
+
+				$foundInstanceIds   = array_column($reservations, 'InstanceId');
+				$missingInstanceIds = array_diff($requestedInstanceIds, $foundInstanceIds);
+				if ($missingInstanceIds !== [])
+				{
+					$io->error(sprintf(
+						"These instance IDs were not found for '%s' in '%s': %s",
+						$slug,
+						$region,
+						implode(', ', $missingInstanceIds),
+					));
+
+					return static::CODE_ERROR;
+				}
 			}
 
 			foreach ($reservations as $instance)
@@ -83,8 +129,9 @@ class DropInstancesCommand extends BaseCommand
 				$instanceIds[] = $instance['InstanceId'];
 
 				// Removing from DynamoDB
-				[$teamTag, , $teamId] = explode('-', substr($instance['Hostname'], $frontLength));
-				$instanceNames[]      = sprintf('%s-%d', strtolower($teamTag), substr($teamId, 1));
+				[$machineType, $teamId] = explode('-', substr($instance['Hostname'], strlen($hostnamePrefix)));
+				$instanceNames[]        = sprintf('%s-%d', strtolower($slug), substr($teamId, 1));
+				$instanceTypes[]        = [strtolower($slug), substr($teamId, 1), $machineType];
 			}
 
 			$io->out("The following instances were found for {$slug} in '{$region}':");
@@ -123,7 +170,14 @@ class DropInstancesCommand extends BaseCommand
 			$io->out('- Instances have been terminated. They may still be visable for up to 1 hour in the console/API.');
 
 			$io->out('- Removing instances from DynamoDB...');
-			Learnomancer\DynamoDbClient::deleteFromDynamo($instanceNames);
+			if ($requestedInstanceIds === [])
+			{
+				Learnomancer\DynamoDbClient::deleteFromDynamo($instanceNames);
+			}
+			else
+			{
+				Learnomancer\DynamoDbClient::deleteInstancesFromDynamo($instanceTypes);
+			}
 		}
 		catch (Learnomancer\LearnomancerException | Exception $e)
 		{
