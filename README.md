@@ -365,7 +365,7 @@ Terminate all instances for a class slug, or select one or more instances by ID 
 #### Syntax
 
 ```bash
-./bin/learnomancer drop-instances [-i <instance-id>] <slug> <region>
+./bin/learnomancer drop-instances [-i <instance-id>[,<instance-id>...]] <slug> <region>
 ```
 
 #### Help
@@ -377,7 +377,7 @@ learnomancer drop_instances [-h] [-i] <slug> <region>
 Options:
 
 --help, -h  Display this help.
---instance-id, -i  Terminate only these instance IDs. May be repeated or supplied as a comma-separated list.
+--instance-id, -i  Terminate only these instance IDs, supplied as a comma-separated list.
 
 Arguments:
 
@@ -396,19 +396,18 @@ y
 - Done
 ```
 
-Terminate specific instances by repeating the option:
-
-```bash
-$ ./bin/learnomancer drop-instances ACME us-west-2 \
-    -i i-0123456789abcdef0 \
-    -i i-0fedcba9876543210
-```
-
-Alternatively, provide a comma-separated list:
+Terminate specific instances by providing one comma-separated list:
 
 ```bash
 $ ./bin/learnomancer drop-instances ACME us-west-2 \
     -i i-0123456789abcdef0,i-0fedcba9876543210
+```
+
+If you prefer a space after each comma, quote the entire list so the shell passes it as one argument:
+
+```bash
+$ ./bin/learnomancer drop-instances ACME us-west-2 \
+    -i 'i-0123456789abcdef0, i-0fedcba9876543210'
 ```
 
 Learnomancer verifies that every requested instance belongs to the specified class before terminating any of them.

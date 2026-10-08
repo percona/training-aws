@@ -39,7 +39,7 @@ class DropInstancesCommand extends BaseCommand
 
 		$parser->addOption('instance-id', [
 			'short' => 'i',
-			'help' => 'Terminate only these instance IDs. May be repeated or supplied as a comma-separated list.',
+			'help' => 'Terminate only these instance IDs, supplied as a comma-separated list.',
 			'multiple' => true,
 			'separator' => ',',
 		]);
