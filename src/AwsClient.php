@@ -21,6 +21,7 @@ use Aws\Iam;
  *
  * @phpstan-type InstanceReservation array<array{
  *		InstanceId: string,
+ *		State: string,
  *		PublicIpAddress: string,
  *		PrivateIpAddress: string,
  *		Tags: array<array{
@@ -73,7 +74,7 @@ final class AwsClient
 	 * Searches for, and returns any instances matching the slug pattern
 	 *
 	 * @param  array<string> $stateFilters
-	 * @return array<int, array{InstanceId: string, PublicIpAddress: string, PrivateIpAddress: string, Hostname: string}>
+	 * @return array<int, array{InstanceId: string, State: string, PublicIpAddress: string, PrivateIpAddress: string, Hostname: string}>
 	 */
 	public function getInstancesBySlug(string $slug, ?array $stateFilters = []): array
 	{
@@ -103,6 +104,7 @@ final class AwsClient
 		 */
 		$reservations = $res->search('Reservations[*].Instances[*].{
 			InstanceId: InstanceId,
+			State: State.Name,
 			PublicIpAddress: PublicIpAddress,
 			PrivateIpAddress: PrivateIpAddress,
 			Tags: Tags}');

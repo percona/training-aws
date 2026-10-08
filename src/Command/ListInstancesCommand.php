@@ -65,11 +65,16 @@ class ListInstancesCommand extends BaseCommand
 				return static::CODE_SUCCESS;
 			}
 
-			$tableData = [['InstanceId', 'Hostname', 'PublicIpAddress']];
+			$tableData = [['InstanceId', 'Hostname', 'State', 'PublicIpAddress']];
 
 			foreach ($instances as $instance)
 			{
-				$tableData[] = [$instance['InstanceId'], $instance['Hostname'], $instance['PublicIpAddress']];
+				$tableData[] = [
+					$instance['InstanceId'],
+					$instance['Hostname'],
+					$instance['State'],
+					$instance['PublicIpAddress'],
+				];
 			}
 
 			$io->out("========== Listing instances for '{$slug}' in '{$region}' ==========");
