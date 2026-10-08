@@ -120,6 +120,11 @@ class DropInstancesCommand extends BaseCommand
 				}
 			}
 
+			usort(
+				$reservations,
+				fn(array $left, array $right): int => strnatcasecmp($left['Hostname'], $right['Hostname']),
+			);
+
 			foreach ($reservations as $instance)
 			{
 				// For confirmation output
