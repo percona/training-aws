@@ -89,11 +89,30 @@ final class DynamoDbClient
 					'#machineType' => $machineType,
 				],
 				'ConditionExpression' => 'attribute_exists(teamTag) AND attribute_exists(teamId)',
+				'ReturnValues' => 'ALL_NEW',
 			];
 
 			try {
-				self::getClient()->updateItem($params);
+				$result = self::getClient()->updateItem($params);
 				print "-- Deleted {$machineType} from {$teamTag}-T{$teamId}\n";
+
+				$attributes = $result->get('Attributes');
+				if (is_array($attributes))
+				{
+					$machineAttributes = array_diff_key($attributes, [
+						'teamTag' => true,
+						'teamId' => true,
+					]);
+
+					if ($machineAttributes === [])
+					{
+						self::getClient()->deleteItem([
+							'TableName' => 'percona_training_servers',
+							'Key' => $params['Key'],
+						]);
+						print "-- Deleted empty team {$teamTag}-T{$teamId}\n";
+					}
+				}
 			} catch (DynamoDbException $e)
 			{
 				print "-- !! Unable to delete {$machineType} from {$teamTag}-T{$teamId}:\n";
