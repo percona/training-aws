@@ -65,6 +65,11 @@ class ListInstancesCommand extends BaseCommand
 				return static::CODE_SUCCESS;
 			}
 
+			usort(
+				$instances,
+				fn(array $left, array $right): int => strnatcasecmp($left['Hostname'], $right['Hostname']),
+			);
+
 			$tableData = [['InstanceId', 'Hostname', 'State', 'PublicIpAddress']];
 
 			foreach ($instances as $instance)
