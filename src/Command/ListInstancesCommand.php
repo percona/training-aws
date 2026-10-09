@@ -4,13 +4,12 @@ declare(strict_types=1);
 namespace Learnomancer\Command;
 
 use Cake\Console\Arguments;
-use Cake\Console\BaseCommand;
 use Cake\Console\ConsoleIo;
 use Cake\Console\ConsoleOptionParser;
 use Exception;
 use Learnomancer;
 
-class ListInstancesCommand extends BaseCommand
+class ListInstancesCommand extends AbstractCommand
 {
 	/**
 	 * Returns the description of the command

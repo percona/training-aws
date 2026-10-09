@@ -4,11 +4,10 @@ declare(strict_types=1);
 namespace Learnomancer\Command;
 
 use Cake\Console\Arguments;
-use Cake\Console\BaseCommand;
 use Cake\Console\ConsoleIo;
 use Cake\Console\ConsoleOptionParser;
 
-class ClassSummaryCommand extends BaseCommand
+class ClassSummaryCommand extends AbstractCommand
 {
 	/**
 	 * Returns the description of the command

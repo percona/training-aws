@@ -4,7 +4,6 @@ declare(strict_types=1);
 namespace Learnomancer\Command;
 
 use Cake\Console\Arguments;
-use Cake\Console\BaseCommand;
 use Cake\Console\ConsoleIo;
 use Cake\Console\ConsoleOptionParser;
 use Cake\Core\Configure;
@@ -15,7 +14,7 @@ use Learnomancer;
  * @phpstan-import-type SecurityGroup from \Learnomancer\AwsClient
  */
 
-class CreateVpcCommand extends BaseCommand
+class CreateVpcCommand extends AbstractCommand
 {
 	private Learnomancer\AwsClient $ec2;
 

@@ -5,13 +5,12 @@ namespace Learnomancer\Command;
 
 use Aws\CommandInterface;
 use Cake\Console\Arguments;
-use Cake\Console\BaseCommand;
 use Cake\Console\ConsoleIo;
 use Cake\Console\ConsoleOptionParser;
 use Exception;
 use Learnomancer;
 
-class DropInstancesCommand extends BaseCommand
+class DropInstancesCommand extends AbstractCommand
 {
 	/**
 	 * Returns the description of the command
