@@ -68,6 +68,14 @@
         var prettyTag = pTag.replace(/[_-]/gi, " ").toUpperCase();
         $("#prettyTag").text(prettyTag);
         
+        // Ignore stale/key-only DynamoDB records. A team must contain at
+        // least one machine entry in addition to its key attributes.
+        data = data.filter(function(item) {
+          return Object.keys(item).some(function(key) {
+            return key != "teamTag" && key != "teamId" && item[key];
+          });
+        });
+
         if (data.length < 1) {
           $("body").append($("<p/>").text("No instances found. Check with your instructor."))
           return
@@ -79,12 +87,15 @@
         var theadrow = thead.append($("<tr/>"))
         var oddRow = true
         
-        // Determine which columns we need to create by examining
-        // first result and looking at its keys. Remove 2 fields
-        // because their sorting from Lambda is odd
-        var _columns = Object.keys(data[0]);
-        var columns = _columns.filter(function(e) {
-          return (e != "teamTag" && e != "teamId");
+        // Determine which machine columns are present across all teams.
+        // Individual teams may have different machine types.
+        var columns = [];
+        $.each(data, function(i, item) {
+          $.each(Object.keys(item), function(j, key) {
+            if (key != "teamTag" && key != "teamId" && $.inArray(key, columns) == -1) {
+              columns.push(key);
+            }
+          });
         });
         columns.sort();
 
@@ -115,13 +126,13 @@
           
           // Loop again over each machine type, and add ips
           $.each(columns, function(j, p) {
-            if (p == "teamId") { return true; } // skip this one
+            var machine = o[p] || {};
             
             pubRow.append($("<td/>").text("Public IP:"))
-            pubRow.append($("<td/>").text(o[p]["publicIp"]))
+            pubRow.append($("<td/>").text(machine["publicIp"] || ""))
             
             privRow.append($("<td/>").text("Internal IP:"))
-            privRow.append($("<td/>").text(o[p]["privateIp"]))
+            privRow.append($("<td/>").text(machine["privateIp"] || ""))
           });
           
           // append the created rows to the main table

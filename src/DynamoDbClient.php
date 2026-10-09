@@ -64,6 +64,68 @@ final class DynamoDbClient
 	}
 
 	/**
+	 * Remove individual machine entries without deleting the rest of the team.
+	 *
+	 * @param array<array{string, string, string}> $instances Arrays containing the team tag, team ID, and machine type
+	 */
+	public static function deleteInstancesFromDynamo(array $instances): void
+	{
+		foreach (array_unique($instances, SORT_REGULAR) as [$teamTag, $teamId, $machineType])
+		{
+			// Team zero contains shared infrastructure that is not stored in DynamoDB.
+			if ($teamId === '0')
+			{
+				continue;
+			}
+
+			$params = [
+				'TableName' => 'percona_training_servers',
+				'Key' => [
+					'teamTag' => ['S' => $teamTag],
+					'teamId'  => ['N' => $teamId],
+				],
+				'UpdateExpression' => 'REMOVE #machineType',
+				'ExpressionAttributeNames' => [
+					'#machineType' => $machineType,
+				],
+				'ConditionExpression' => 'attribute_exists(teamTag) AND attribute_exists(teamId)',
+				'ReturnValues' => 'ALL_NEW',
+			];
+
+			try {
+				$result = self::getClient()->updateItem($params);
+				print "-- Deleted {$machineType} from {$teamTag}-T{$teamId}\n";
+
+				$attributes = $result->get('Attributes');
+				if (is_array($attributes))
+				{
+					$machineAttributes = array_diff_key($attributes, [
+						'teamTag' => true,
+						'teamId' => true,
+					]);
+
+					if ($machineAttributes === [])
+					{
+						self::getClient()->deleteItem([
+							'TableName' => 'percona_training_servers',
+							'Key' => $params['Key'],
+						]);
+						print "-- Deleted empty team {$teamTag}-T{$teamId}\n";
+					}
+				}
+			} catch (DynamoDbException $e)
+			{
+				print "-- !! Unable to delete {$machineType} from {$teamTag}-T{$teamId}:\n";
+				print $e->getMessage();
+
+				return;
+			}
+		}
+
+		printf("-- Deletes from DynamoDB completed\n");
+	}
+
+	/**
 	 * @param array<string> $instanceInfo
 	 */
 	public static function saveInstanceInfoToDynamo(string $slug, string $teamId, array $instanceInfo): bool

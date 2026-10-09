@@ -103,7 +103,7 @@ List Percona Training AMIs in a region.
 
 ```bash
 Usage:
-learnomancer list_amis [-h] <region>
+learnomancer list-amis [-h] <region>
 
 Options:
 
@@ -145,7 +145,7 @@ List running instances for a class slug in a region.
 List currently running instances for an existing class
 
 Usage:
-learnomancer list_instances [-h] <slug> <region>
+learnomancer list-instances [-h] <slug> <region>
 
 Options:
 
@@ -162,12 +162,12 @@ region  The region to list from
 ```bash
 $ ./bin/learnomancer list-instances ACME us-west-2
 ========== Listing instances for 'ACME' in 'us-west-2' ==========
-+---------------------+--------------------------------------+----------------+
-| InstanceId          | Hostname                             | PublicIpAddress|
-+---------------------+--------------------------------------+----------------+
-| i-0a1b2c3d4e5f67890 | Percona-Training-ACME-db1-T1         | 54.200.10.1    |
-| i-0f9e8d7c6b5a43210 | Percona-Training-ACME-db2-T1         | 54.200.10.2    |
-+---------------------+--------------------------------------+----------------+
++---------------------+--------------------------------------+---------+-----------------+
+| InstanceId          | Hostname                             | State   | PublicIpAddress |
++---------------------+--------------------------------------+---------+-----------------+
+| i-0a1b2c3d4e5f67890 | Percona-Training-ACME-db1-T1         | running | 54.200.10.1     |
+| i-0f9e8d7c6b5a43210 | Percona-Training-ACME-db2-T1         | running | 54.200.10.2     |
++---------------------+--------------------------------------+---------+-----------------+
 ```
 
 ---
@@ -186,7 +186,7 @@ List VPCs in a region
 
 ```bash
 Usage:
-learnomancer list_vpcs [-h] <region>
+learnomancer list-vpcs [-h] <region>
 
 Options:
 
@@ -225,7 +225,7 @@ Create a VPC including subnet, gateway, route table, and security groups.
 
 ```bash
 Usage:
-learnomancer create_vpc [-h] [-r] <slug> <region>
+learnomancer create-vpc [-h] <slug> <region>
 
 Options:
 
@@ -265,7 +265,7 @@ Tear down the VPC and related networking for a class.
 
 ```bash
 Usage:
-learnomancer drop_vpc [-h] <slug> <region>
+learnomancer drop-vpc [-h] <slug> <region>
 
 Options:
 
@@ -322,7 +322,7 @@ Aliases:
 
 ```bash
 Usage:
-learnomancer create_instances [-i ami-xxxxxx] [-h] [-o 0] <slug> <region> <count> <db1|db2|app|mysql1|mysql2|mysql3|pxc|gr|node1|node2|node3|node4|mongodb>
+learnomancer create-instances [-i ami-xxxxxx] [-h] [-o 0] <slug> <region> <count> <db1|db2|app|mysql1|mysql2|mysql3|pxc|gr|node1|node2|node3|node4|mongodb>
 
 Options:
 
@@ -360,23 +360,24 @@ $ ./bin/learnomancer create-instances -o 9 ACME us-west-2 2 db1,db2 -i ami-0abc1
 
 ### `drop-instances`
 
-Terminate all instances for a class slug (does not drop the VPC).
+Terminate all instances for a class slug, or select one or more instances by ID (does not drop the VPC).
 
 #### Syntax
 
 ```bash
-./bin/learnomancer drop-instances <slug> <region>
+./bin/learnomancer drop-instances [-i <instance-id>[,<instance-id>...]] <slug> <region>
 ```
 
 #### Help
 
 ```bash
 Usage:
-learnomancer drop_instances [-h] <slug> <region>
+learnomancer drop-instances [-h] [-i] <slug> <region>
 
 Options:
 
 --help, -h  Display this help.
+--instance-id, -i  Terminate only these instance IDs, supplied as a comma-separated list.
 
 Arguments:
 
@@ -394,6 +395,22 @@ y
 - Terminating instances...
 - Done
 ```
+
+Terminate specific instances by providing one comma-separated list:
+
+```bash
+$ ./bin/learnomancer drop-instances ACME us-west-2 \
+    -i i-0123456789abcdef0,i-0fedcba9876543210
+```
+
+If you prefer a space after each comma, quote the entire list so the shell passes it as one argument:
+
+```bash
+$ ./bin/learnomancer drop-instances ACME us-west-2 \
+    -i 'i-0123456789abcdef0, i-0fedcba9876543210'
+```
+
+Learnomancer verifies that every requested instance belongs to the specified class before terminating any of them.
 
 ---
 
@@ -417,7 +434,7 @@ Available Classes, which should match slide material:
 
 ```bash
 Usage:
-learnomancer create_class [-h] <mysql-ops|pxc|gr|proxysql|mysql-k8s|mongo-ops|mongo-dev|mongo-k8s|pg-ops|pg-dev|pg-k8s> <slug> <region> <count> <ami>
+learnomancer create-class [-h] <mysql-ops|pxc|gr|proxysql|mysql-k8s|mongo-ops|mongo-dev|mongo-k8s|pg-ops|pg-dev|pg-k8s> <slug> <region> <count> <ami>
 
 Options:
 
@@ -464,7 +481,7 @@ Use this command to drop an existing class based on slug and region.
 
 ```bash
 Usage:
-learnomancer drop_class [-h] <slug> <region>
+learnomancer drop-class [-h] <slug> <region>
 
 Options:
 
@@ -499,7 +516,7 @@ Generate Ansible inventory for a class. Print to stdout, or save with `-o`.
 
 ```bash
 Usage:
-learnomancer ansible_config [-h] [-o] <slug> <region>
+learnomancer ansible-config [-h] [-o] <slug> <region>
 
 Options:
 
@@ -538,7 +555,7 @@ Generate SSH `Host` entries file for class instances. Print to stdout, or save w
 
 ```bash
 Usage:
-learnomancer ssh_config [-h] [-o] <slug> <region>
+learnomancer ssh-config [-h] [-o] <slug> <region>
 
 Options:
 
@@ -628,7 +645,7 @@ Push instance IP / team metadata to the DynamoDB table, used by the dashboard. (
 
 ```bash
 Usage:
-learnomancer sync_dynamo [-h] <slug> <region>
+learnomancer sync-dynamo [-h] <slug> <region>
 
 Options:
 
@@ -666,7 +683,7 @@ Rebuild the local class config file from an existing VPC (rarely needed).
 
 ```bash
 Usage:
-learnomancer vpc_config [-h] <slug> <region>
+learnomancer vpc-config [-h] <slug> <region>
 
 Options:
 

@@ -4,13 +4,12 @@ declare(strict_types=1);
 namespace Learnomancer\Command;
 
 use Cake\Console\Arguments;
-use Cake\Console\BaseCommand;
 use Cake\Console\ConsoleIo;
 use Cake\Console\ConsoleOptionParser;
 use Exception;
 use Learnomancer;
 
-class ListInstancesCommand extends BaseCommand
+class ListInstancesCommand extends AbstractCommand
 {
 	/**
 	 * Returns the description of the command
@@ -65,11 +64,21 @@ class ListInstancesCommand extends BaseCommand
 				return static::CODE_SUCCESS;
 			}
 
-			$tableData = [['InstanceId', 'Hostname', 'PublicIpAddress']];
+			usort(
+				$instances,
+				fn(array $left, array $right): int => strnatcasecmp($left['Hostname'], $right['Hostname']),
+			);
+
+			$tableData = [['InstanceId', 'Hostname', 'State', 'PublicIpAddress']];
 
 			foreach ($instances as $instance)
 			{
-				$tableData[] = [$instance['InstanceId'], $instance['Hostname'], $instance['PublicIpAddress']];
+				$tableData[] = [
+					$instance['InstanceId'],
+					$instance['Hostname'],
+					$instance['State'],
+					$instance['PublicIpAddress'],
+				];
 			}
 
 			$io->out("========== Listing instances for '{$slug}' in '{$region}' ==========");
